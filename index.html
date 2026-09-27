@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#101411">
+    <title>Lookout | Face Motion Lab</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="#" aria-label="Lookout home">
+                <span class="brand-mark" aria-hidden="true"><span></span></span>
+                <span>lookout<span class="brand-dot">.</span></span>
+            </a>
+            <span class="topbar-note">COMPUTER VISION LAB <span> / </span> 01</span>
+        </header>
+
+        <section class="workspace" aria-labelledby="page-title">
+            <div class="intro">
+                <div class="eyebrow"><span class="eyebrow-line"></span> REAL-TIME FACE ANALYSIS</div>
+                <h1 id="page-title">A closer look<span>.</span></h1>
+                <p class="intro-copy">Deteksi wajah langsung dari kamera, dengan ekspresi dan estimasi usia di layar.</p>
+            </div>
+
+            <div class="detector-layout">
+                <section class="camera-panel" aria-label="Tampilan kamera">
+                    <div class="camera-toolbar">
+                        <div class="camera-label"><span class="live-indicator" id="live-indicator"></span><span id="camera-state">KAMERA NONAKTIF</span></div>
+                        <div class="camera-meta">
+                            <button class="mirror-toggle" id="mirror-toggle" type="button" aria-pressed="true" title="Koreksi mirror aktif">
+                                <span aria-hidden="true">↔</span><span id="mirror-label">ASLI</span>
+                            </button>
+                            <span class="hand-status" id="hand-status">SIAP</span>
+                            <span class="camera-resolution" id="camera-resolution">-- : --</span>
+                        </div>
+                    </div>
+                    <div class="camera-stage is-unmirrored" id="camera-stage">
+                        <video id="camera-video" autoplay muted playsinline aria-label="Video kamera"></video>
+                        <div class="face-box-layer" id="face-boxes" aria-hidden="true"></div>
+                        <div class="objects-layer" id="objects-layer" aria-label="Objek yang dapat digerakkan"></div>
+                        <div class="stage-idle" id="stage-idle">
+                            <div class="viewfinder" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            <span class="idle-symbol" aria-hidden="true">◎</span>
+                            <p>Kamera belum dimulai</p>
+                            <span>Mulai sesi untuk mendeteksi wajah</span>
+                        </div>
+                        <div class="stage-loading" id="stage-loading" hidden>
+                            <span class="loader-ring" aria-hidden="true"></span>
+                            <p>Menyiapkan model deteksi</p>
+                            <span>Unduhan pertama mungkin perlu beberapa saat</span>
+                        </div>
+                        <div class="scan-line" aria-hidden="true"></div>
+                    </div>
+                    <div class="camera-footer">
+                        <span><span class="footer-square"></span> PROSES LOKAL DI BROWSER</span>
+                        <span class="camera-counts"><span id="face-count">0 WAJAH</span><span id="hand-count">0 TANGAN</span></span>
+                    </div>
+                </section>
+
+                <aside class="side-panel" aria-label="Kontrol dan hasil deteksi">
+                    <div class="control-block">
+                        <div class="section-kicker">SESI KAMERA</div>
+                        <h2>Mulai deteksi</h2>
+                        <p class="panel-copy">Arahkan kamera ke wajah. Analisis berjalan langsung selama sesi aktif.</p>
+                        <label class="camera-select-label" for="camera-select">PILIH KAMERA</label>
+                        <select class="camera-select" id="camera-select" aria-label="Pilih kamera">
+                            <option value="">Otomatis (kamera utama)</option>
+                        </select>
+                        <div class="object-mode">
+                            <span class="object-mode-label">MODE GRAVITAS</span>
+                            <div class="mode-segment" role="group" aria-label="Mode gravitasi objek">
+                                <button id="gravity-mode" type="button" aria-pressed="true">GRAVITY</button>
+                                <button id="nongravity-mode" type="button" aria-pressed="false">NON-GRAVITY</button>
+                            </div>
+                        </div>
+                        <label class="collision-control" for="collision-toggle">
+                            <input id="collision-toggle" type="checkbox" checked>
+                            <span class="collision-switch" aria-hidden="true"></span>
+                            <span>COLLISION</span>
+                        </label>
+                        <div class="shape-tools" aria-label="Tambah bentuk">
+                            <button class="shape-button" type="button" data-add-shape="square" aria-label="Tambah persegi" title="Tambah persegi"><span class="shape-icon square-icon" aria-hidden="true"></span></button>
+                            <button class="shape-button" type="button" data-add-shape="circle" aria-label="Tambah lingkaran" title="Tambah lingkaran"><span class="shape-icon circle-icon" aria-hidden="true"></span></button>
+                            <button class="shape-button" type="button" data-add-shape="triangle" aria-label="Tambah segitiga" title="Tambah segitiga"><span class="shape-icon triangle-icon" aria-hidden="true"></span></button>
+                            <button class="shape-button" type="button" data-add-shape="diamond" aria-label="Tambah wajik" title="Tambah wajik"><span class="shape-icon diamond-icon" aria-hidden="true"></span></button>
+                            <span class="object-count" id="object-count">1 OBJEK</span>
+                            <button class="delete-object" id="delete-object" type="button" aria-label="Hapus objek terpilih" title="Hapus objek terpilih"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <button class="start-button" id="camera-toggle" type="button">
+                            <span class="button-icon" aria-hidden="true">▷</span>
+                            <span id="button-label">Aktifkan kamera</span>
+                            <span class="button-arrow" aria-hidden="true">↗</span>
+                        </button>
+                        <p class="permission-note" id="status-message" role="status">Izin kamera akan diminta saat tombol ditekan.</p>
+                    </div>
+
+                    <div class="results-block">
+                        <div class="results-heading">
+                            <div>
+                                <div class="section-kicker">PEMBACAAN LANGSUNG</div>
+                                <h2>Yang terlihat</h2>
+                            </div>
+                            <span class="result-count" id="result-count">00</span>
+                        </div>
+                        <div class="face-results" id="face-results" aria-live="polite">
+                            <div class="empty-result"><span aria-hidden="true">＋</span><p>Belum ada wajah terdeteksi</p></div>
+                        </div>
+                    </div>
+
+                    <div class="model-note"><span class="model-note-icon" aria-hidden="true">✳</span><p>Estimasi usia dan emosi bersifat prediksi model, bukan identifikasi pasti.</p></div>
+                </aside>
+            </div>
+            <footer class="page-footer"><span>LOOKOUT / FACE MOTION LAB</span><span>CAMERA INPUT <b>●</b> BROWSER-ONLY</span></footer>
+        </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <script src="script.js" defer></script>
+    <script src="scene-objects.js" defer></script>
+    <script src="hand-detection.js" defer></script>
+</body>
+ </html>
