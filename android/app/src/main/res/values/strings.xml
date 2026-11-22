@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Layar Pas</string>
+    <string name="title_activity_main">Layar Pas</string>
+    <string name="package_name">com.yblig.layarpas</string>
+    <string name="custom_url_scheme">com.yblig.layarpas</string>
+</resources>
