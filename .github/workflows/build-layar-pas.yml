@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Layar Pas APK
 
 # Builds an installable, signed release APK on every push to main (or by hand
 # from the Actions tab) and publishes it as a GitHub Release so it can be
@@ -6,14 +6,14 @@ name: Build APK
 
 on:
   push:
-    branches: [main, master]
+    branches: [layar-pas]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-apk-${{ github.ref }}
+  group: build-layar-pas-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -87,7 +87,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
+          tag_name: layar-pas-build-${{ github.run_number }}
           name: ${{ steps.apk.outputs.name }} v${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
           body: |
             Tap the .apk below to download it on your Android phone, then open it to install.
