@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ChatSim</string>
+    <string name="title_activity_main">ChatSim</string>
+    <string name="package_name">com.yblig.chatsim</string>
+    <string name="custom_url_scheme">com.yblig.chatsim</string>
+</resources>

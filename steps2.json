@@ -1,0 +1,13 @@
+[
+ {"eval": "window.__app.tab('presets')"}, {"wait": 600},
+ {"eval": "document.querySelectorAll('.preset')[1].click()"}, {"wait": 1000},
+ {"eval": "document.querySelector('.ed-top .icon-btn').click()"}, {"wait": 600},
+ {"eval": "window.__app.tab('presets')"}, {"wait": 600},
+ {"eval": "document.querySelectorAll('.preset')[2].click()"}, {"wait": 1000, "name": "wa-light"},
+ {"eval": "document.querySelector('.ed-export').click()"}, {"wait": 600},
+ {"eval": "document.querySelectorAll('.sheet .menu-item')[0].click()"}, {"wait": 3500, "name": "after-save"},
+ {"eval": "document.querySelector('.ed-top .icon-btn').click()"}, {"wait": 900, "name": "home-list"},
+ {"eval": "window.__app.newChat()"}, {"wait": 800, "name": "new-sheet"},
+ {"eval": "document.querySelectorAll('.tpl-card')[0].click()"}, {"wait": 1000, "name": "blank-editor"},
+ {"eval": "window.__app.tab('settings')"}, {"wait": 300}
+]
