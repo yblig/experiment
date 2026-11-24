@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MoreVertical, Clock, Copy, Trash2, Sparkles, Plus } from 'lucide-react';
+import { MoreVertical, Clock, Copy, Trash2, Sparkles, Plus, Search, Pin, PinOff, X } from 'lucide-react';
 import { useStore, TEMPLATES } from '../store.js';
 import { BrandMark, Mini, Sheet, toast, useNow } from '../components/ui.jsx';
 import Shot from '../templates/Shot.jsx';
@@ -48,8 +48,13 @@ function EmptyArt() {
 
 export default function Home({ onOpen, onNew, goPresets }) {
   useNow();
-  const { chats, deleteChat, duplicateChat, restoreChat } = useStore();
+  const { chats, deleteChat, duplicateChat, restoreChat, togglePin } = useStore();
   const [menu, setMenu] = useState(null);
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const list = chats
+    .filter(c => !needle || [c.title, c.contact.name, ...c.messages.map(m => m.text || '')].join('\n').toLowerCase().includes(needle))
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
   const del = c => {
     fx.del();
@@ -82,15 +87,22 @@ export default function Home({ onOpen, onNew, goPresets }) {
           </motion.div>
         ) : (
           <>
-            <div className="section-title">Chat kamu <small>{chats.length} chat</small></div>
-            {chats.map((c, i) => {
-              const t = TEMPLATES[c.template];
+            <label className="search">
+              <Search size={18} />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Cari judul, nama, atau isi chat" />
+              {q && <button onClick={() => { fx.tap(); setQ(''); }} aria-label="Hapus pencarian"><X size={18} /></button>}
+            </label>
+            <div className="section-title">{needle ? 'Hasil pencarian' : 'Chat kamu'} <small>{list.length} chat</small></div>
+            {needle && !list.length && <p className="note" style={{ textAlign: 'center', padding: 20 }}>Nggak ada chat yang cocok dengan "{q}".</p>}
+            {list.map((c, i) => {
+              const t = TEMPLATES[c.template] || TEMPLATES.imessage;
               return (
                 <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}>
                   <div className="card chat-card press" role="button" onClick={() => { fx.tap(); onOpen(c.id); }}>
                     <div className="thumb"><Mini width={74}><Shot chat={{ ...c, showInput: false }} /></Mini></div>
                     <div className="info">
-                      <span className="badge" style={{ background: t.color + '22', color: t.color }}><i style={{ background: t.color }} />{t.label}</span>
+                      <span className="badge" style={{ background: t.color + '22', color: t.color }}><i style={{ background: t.color }} />{t.label}{c.group ? ' · Grup' : ''}</span>
+                      {c.pinned && <Pin size={14} className="pin-ic" style={{ marginLeft: 6, verticalAlign: -2 }} />}
                       <h3>{c.title}</h3>
                       <p>{lastLine(c)}</p>
                       <div className="when"><Clock size={12} /> {ago(c.updatedAt)} · {c.messages.filter(m => m.kind === 'msg').length} pesan</div>
@@ -104,6 +116,9 @@ export default function Home({ onOpen, onNew, goPresets }) {
         )}
       </div>
       <Sheet open={!!menu} onClose={() => setMenu(null)} title={menu?.title}>
+        <button className="menu-item press" onClick={() => { fx.toggle(); togglePin(menu.id); setMenu(null); toast(menu.pinned ? 'Sematan dilepas' : 'Chat disematkan di atas'); }}>
+          {menu?.pinned ? <PinOff size={20} /> : <Pin size={20} />} {menu?.pinned ? 'Lepas sematan' : 'Sematkan di atas'}
+        </button>
         <button className="menu-item press" onClick={() => { fx.tap(); duplicateChat(menu.id); setMenu(null); toast('Chat diduplikat'); }}><Copy size={20} /> Duplikat</button>
         <button className="menu-item danger press" onClick={() => del(menu)}><Trash2 size={20} /> Hapus</button>
       </Sheet>

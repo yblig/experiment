@@ -32,3 +32,12 @@ Templates use Inter (iMessage, X) and Roboto (WhatsApp) at 390pt phone width; no
 ## Sound / haptics
 tap (buttons), send (whoosh, adding my message), receive (notify, adding their message), delete,
 toggle, open (sheets), success (export done), error. Haptics tap/light/success/error. Toggleable.
+
+## v1.1 (40 new features)
+Templates: + Telegram, Instagram DM, SMS Android (Material), Lock screen (notifications). Message types: text,
+image, sticker, voice, call, location, contact, deleted; reply/quote, reaction, edited, link preview, big emoji.
+Group chats (participants with colours), system message, unread divider, pinned bar, notification banner,
+on-screen keyboard + draft text, custom wallpaper, verified badge, text size, watermark, charging icon.
+Editor: undo/redo, script import (`Aku:` / `Nama:` / `---` / `*`), auto time, Play mode (screen recording),
+9:16 frame export, copy as text, save as "Preset saya". Home: search, pin. Presets: random story, 14 stories.
+Settings: backup/restore JSON (photos embedded). Photos stored as files in app data (`media/`).

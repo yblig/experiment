@@ -14,14 +14,17 @@ import { storage } from './lib/storage.js';
 import { native } from './lib/native.js';
 import { useStore } from './store.js';
 import { loadSounds } from './fx.js';
+import { initMedia } from './media.js';
 import { toast } from './components/ui.jsx';
 import App from './App.jsx';
 
 (async () => {
   await storage.init();
   await native.init();
+  await initMedia();
   native.toast = () => toast('Tekan kembali sekali lagi untuk keluar');
   useStore.getState().load();
+  window.__store = useStore;
   createRoot(document.getElementById('app')).render(<App />);
   loadSounds();
   requestAnimationFrame(() => native.hideSplash());

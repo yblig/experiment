@@ -7,7 +7,11 @@ function MiniArt({ k }) {
   const c = {
     imessage: { bg: '#000', head: '#1c1c1e', them: '#3a3a3c', me: '#0a84ff', r: 7 },
     whatsapp: { bg: '#0b141a', head: '#1f2c34', them: '#202c33', me: '#005c4b', r: 3 },
-    x: { bg: '#000', head: '#000', them: '#2f3336', me: '#1d9bf0', r: 8 }
+    x: { bg: '#000', head: '#000', them: '#2f3336', me: '#1d9bf0', r: 8 },
+    telegram: { bg: '#0e1621', head: '#212d3b', them: '#182533', me: '#2b5278', r: 6 },
+    instagram: { bg: '#000', head: '#000', them: '#262626', me: '#7a3cf5', r: 8 },
+    sms: { bg: '#121316', head: '#121316', them: '#33353a', me: '#0b57d0', r: 8 },
+    lock: { bg: '#2a2160', head: '#2a2160', them: 'rgba(255,255,255,.35)', me: 'rgba(255,255,255,.35)', r: 4 }
   }[k];
   return (
     <svg width="58" height="74" viewBox="0 0 58 74">

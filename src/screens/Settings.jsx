@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info } from 'lucide-react';
+import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput } from 'lucide-react';
+import { shareTextFile } from '../exporter.js';
+import { pickFile } from '../media.js';
 import { useStore, TEMPLATES } from '../store.js';
 import { Switch, Seg, Sheet, toast } from '../components/ui.jsx';
 import { fx } from '../fx.js';
@@ -7,8 +9,26 @@ import { fx } from '../fx.js';
 const Ic = ({ c, children }) => <span className="ic" style={{ background: c + '22', color: c }}>{children}</span>;
 
 export default function Settings() {
-  const { settings, setSettings, clearAll, chats } = useStore();
+  const { settings, setSettings, clearAll, chats, exportAll, importAll } = useStore();
   const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const backup = async () => {
+    if (busy) return;
+    fx.tap(); setBusy(true);
+    try {
+      const d = new Date(), p = n => String(n).padStart(2, '0');
+      const msg = await shareTextFile(`ChatSim-backup-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`, await exportAll());
+      fx.success(); toast(msg);
+    } catch (e) { fx.error(); toast('Gagal mencadangkan: ' + (e?.message || e)); } finally { setBusy(false); }
+  };
+  const restore = async () => {
+    fx.tap();
+    const f = await pickFile('application/json,.json,text/plain');
+    if (!f) return;
+    setBusy(true);
+    try { const n = await importAll(await f.text()); fx.success(); toast(`${n} chat dipulihkan`); }
+    catch (e) { fx.error(); toast('File tidak valid: ' + (e?.message || e)); } finally { setBusy(false); }
+  };
   return (
     <>
       <div className="topbar"><div className="brand"><h1>Pengaturan</h1></div></div>
@@ -26,8 +46,12 @@ export default function Settings() {
             <Ic c="#1d9bf0"><LayoutTemplate size={19} /></Ic>
             <span className="lbl">Template default<small>Untuk chat baru dari tombol +</small></span>
             <div style={{ width: '100%' }}>
-              <Seg value={settings.defaultTemplate} onChange={v => setSettings({ defaultTemplate: v })}
-                options={Object.entries(TEMPLATES).map(([k, t]) => [k, t.label])} />
+              <div className="mini-row">
+                {Object.entries(TEMPLATES).map(([k, t]) => (
+                  <button key={k} className={'chip press' + (settings.defaultTemplate === k ? ' on' : '')} style={{ '--c': t.color }}
+                    onClick={() => { fx.tap(); setSettings({ defaultTemplate: k }); }}><i />{t.label}</button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -49,6 +73,14 @@ export default function Settings() {
 
         <div className="section-title">Data</div>
         <div className="card group">
+          <button className="row press" onClick={backup} disabled={!chats.length || busy}>
+            <Ic c="#2fd6a3"><DatabaseBackup size={19} /></Ic>
+            <span className="lbl">Cadangkan semua chat<small>Simpan file .json (termasuk foto) untuk dipindah ke HP lain</small></span>
+          </button>
+          <button className="row press" onClick={restore} disabled={busy}>
+            <Ic c="#4dabf7"><FolderInput size={19} /></Ic>
+            <span className="lbl">Pulihkan dari file<small>Chat dari cadangan ditambahkan, yang ada tetap aman</small></span>
+          </button>
           <button className="row press" onClick={() => { fx.tap(); setConfirm(true); }} disabled={!chats.length}>
             <Ic c="#ff6b6b"><Trash2 size={19} /></Ic>
             <span className="lbl" style={{ color: 'var(--danger)' }}>Hapus semua chat<small>{chats.length} chat tersimpan di HP ini</small></span>
@@ -58,7 +90,7 @@ export default function Settings() {
         <div className="section-title">Tentang</div>
         <div className="card group">
           <div className="row"><Ic c="#9aa0b4"><Info size={19} /></Ic>
-            <span className="lbl">ChatSim 1.0<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
+            <span className="lbl">ChatSim 1.1<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
         </div>
         <p className="note">ChatSim dibuat untuk cerita fiksi, video, komik, dan meme. Jangan dipakai untuk menipu, memfitnah, atau mengaku-ngaku chat asli orang lain. Template hanya meniru gaya tampilan dan tidak berafiliasi dengan aplikasi mana pun.</p>
       </div>

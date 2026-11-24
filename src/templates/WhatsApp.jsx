@@ -1,8 +1,8 @@
 import { ArrowLeft, Video, Phone, MoreVertical, Smile, Paperclip, Camera, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Ticks } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard } from './parts.jsx';
 
 // Original doodle wallpaper (drawn for this app), tiled behind the messages.
-const doodle = (c) => `url("data:image/svg+xml,${encodeURIComponent(
+const doodle = c => `url("data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><g fill='none' stroke='${c}' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'>
   <circle cx='22' cy='24' r='9'/><path d='M18 23h.01M26 23h.01M18 28q4 3 8 0'/>
   <path d='M70 14l4 8 9 1-6.5 6 1.6 9-8.1-4.3-8.1 4.3 1.6-9-6.5-6 9-1z'/>
@@ -15,62 +15,71 @@ const doodle = (c) => `url("data:image/svg+xml,${encodeURIComponent(
   <circle cx='128' cy='130' r='12'/><path d='M128 122v8l5 4'/>
   </g></svg>`)}")`;
 
-export default function WhatsApp({ chat, items, onTap }) {
+const CLS = { time: 'wa-date', system: 'wa-date sys', unread: 'wa-unread' };
+
+export default function WhatsApp({ chat, items, byId, onTap }) {
   const dark = chat.dark;
-  const g = groupInfo(items);
+  const g = groupInfo(items, chat.group);
   const last = items[items.length - 1];
   const typing = last?.kind === 'typing' && last.from !== 'me';
-  const shown = typing ? items.slice(0, -1) : items;
-  const headTxt = '#fff';
+  const shown = typing && !chat.group ? items.slice(0, -1) : items;
   const tickGrey = dark ? 'rgba(233,237,239,.6)' : '#8696a0';
+  const sub = typing && !chat.group ? 'mengetik...' : chat.group && typing
+    ? `${(chat.participants.find(p => p.id === last.sender) || chat.participants[0] || {}).name || ''} mengetik...`
+    : chat.group ? chat.contact.status || chat.participants.map(p => p.name).concat('Anda').join(', ') : chat.contact.status;
+  const shownItems = chat.group && typing ? items.slice(0, -1) : shown;
+  const bg = wallpaperStyle(chat, { backgroundImage: doodle(dark ? 'rgba(255,255,255,.045)' : 'rgba(84,101,111,.09)'), backgroundSize: '160px 160px' });
   return (
-    <div className={'shot wa ' + (dark ? 'dark' : 'light')}>
+    <div className={'shot wa ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="wa-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} color={headTxt} android />}
+        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" android />}
         <div className="wa-head-row">
           <ArrowLeft size={24} strokeWidth={2.2} />
-          <Avatar contact={chat.contact} size={40} personIcon={{ bg: dark ? '#6a7175' : '#dfe5e7', fg: dark ? '#cfd4d6' : '#fff' }} />
+          <Avatar contact={chat.contact} size={40} personIcon={chat.contact.avatar ? null : { bg: dark ? '#6a7175' : '#dfe5e7', fg: dark ? '#cfd4d6' : '#fff' }} />
           <div className="wa-who">
-            <div className="wa-name">{chat.contact.name || 'Unknown'}</div>
-            {(typing || chat.contact.status) && <div className="wa-sub">{typing ? 'mengetik...' : chat.contact.status}</div>}
+            <div className="wa-name">{chat.contact.name || 'Unknown'}{chat.verified && <Verified size={15} color="#25d366" />}</div>
+            {sub && <div className="wa-sub">{sub}</div>}
           </div>
           <Video size={24} strokeWidth={2} />
           <Phone size={21} strokeWidth={2} />
           <MoreVertical size={22} strokeWidth={2.2} />
         </div>
       </div>
-      <div className="msgs wa-msgs" style={{ backgroundImage: doodle(dark ? 'rgba(255,255,255,.045)' : 'rgba(84,101,111,.09)') }}>
-        {shown.map((it, i) => {
+      <PinBar chat={chat} />
+      <div className="msgs wa-msgs" style={bg}>
+        {shownItems.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (it.kind === 'time') return <div key={it.id} className="wa-date" onClick={tap}><span>{it.text}</span></div>;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          const side = it.from === 'me' ? 'me' : 'them';
+          const first = g[i].first;
           if (it.kind === 'typing') {
-            const side = it.from === 'me' ? 'me' : 'them';
             return (
-              <div key={it.id} className={`wa-row ${side} ${g[i].first ? 'first' : ''}`} onClick={tap}>
-                <div className={`wa-b ${side} ${g[i].first ? 'tail' : ''}`}><span className="wa-typing">mengetik...</span></div>
+              <div key={it.id} className={`wa-row ${side} ${first ? 'first' : ''}`} onClick={tap}>
+                <div className={`wa-b ${side} ${first ? 'tail' : ''}`}><span className="wa-typing">mengetik...</span></div>
               </div>
             );
           }
-          const side = it.from === 'me' ? 'me' : 'them';
+          const t = typeOf(it);
+          const big = bigEmoji(it);
           const meta = (
             <>
+              {it.edited && <span className="wa-ed">Diedit</span>}
               {it.time}
-              {side === 'me' && <Ticks status={it.status || 'sent'} color={it.status === 'read' ? '#53bdeb' : tickGrey} />}
+              {side === 'me' && t !== 'deleted' && <Ticks status={it.status || 'sent'} color={it.status === 'read' ? '#53bdeb' : tickGrey} />}
             </>
           );
           return (
-            <div key={it.id} className={`wa-row ${side} ${g[i].first ? 'first' : ''}`} onClick={tap}>
-              <div className={`wa-b ${side} ${g[i].first ? 'tail' : ''}`}>
-                {g[i].first && (
+            <div key={it.id} className={`wa-row ${side} ${first ? 'first' : ''} ${it.reaction ? 'has-react' : ''}`} onClick={tap}>
+              <div className={`wa-b ${side} k-${big ? 'emoji' : t} ${first && !big ? 'tail' : ''}`} style={big ? { fontSize: 50 - big * 6 } : null}>
+                {first && !big && (
                   <svg className="wa-tailsvg" width="8" height="13" viewBox="0 0 8 13">
-                    {side === 'me'
-                      ? <path d="M0 0h6.4c1.2 0 1.9 1.4 1.1 2.4L0 13z" />
-                      : <path d="M8 0H1.6C.4 0-.3 1.4.5 2.4L8 13z" />}
+                    {side === 'me' ? <path d="M0 0h6.4c1.2 0 1.9 1.4 1.1 2.4L0 13z" /> : <path d="M8 0H1.6C.4 0-.3 1.4.5 2.4L8 13z" />}
                   </svg>
                 )}
-                <span className="wa-text">{it.text}</span>
-                <span className="wa-meta-space">{meta}</span>
+                <Content it={it} chat={chat} byId={byId} showName={chat.group && side === 'them' && first} />
+                {t !== 'call' && <span className="wa-meta-space">{meta}</span>}
                 <span className="wa-meta">{meta}</span>
+                <Reaction it={it} />
               </div>
             </div>
           );
@@ -80,13 +89,14 @@ export default function WhatsApp({ chat, items, onTap }) {
         <div className="wa-input">
           <span className="wa-field">
             <Smile size={23} strokeWidth={1.8} />
-            <span className="wa-ph">Ketik pesan</span>
+            <span className="wa-ph"><Draft chat={chat} placeholder="Ketik pesan" /></span>
             <Paperclip size={21} strokeWidth={1.8} />
             <Camera size={22} strokeWidth={1.8} />
           </span>
           <span className="wa-mic"><Mic size={22} strokeWidth={2} /></span>
         </div>
       )}
+      <Keyboard chat={chat} android />
     </div>
   );
 }
