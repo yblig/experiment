@@ -1,5 +1,5 @@
 import { ArrowLeft, Info, Image, Smile, SendHorizontal } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, to12, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, to12, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid , tx, labels } from './parts.jsx';
 
 const CLS = { time: 'xd-time', system: 'xd-time', unread: 'xd-unread' };
 
@@ -11,13 +11,13 @@ export default function XDM({ chat, items, byId, onTap }) {
   return (
     <div className={'shot xd ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="xd-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#0f1419'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#0f1419'} />}
         <div className="xd-head-row">
           <ArrowLeft size={22} strokeWidth={2.2} />
           <Avatar contact={chat.contact} size={34} flat />
           <div className="xd-who">
             <div className="xd-name">{chat.contact.name || 'Unknown'}{chat.verified && <Verified size={17} />}</div>
-            <div className="xd-handle">{chat.group ? `${chat.participants.length + 1} people` : handle}</div>
+            <div className="xd-handle">{chat.group ? tx(chat).people(chat.participants.length + 1) : handle}</div>
           </div>
           <Info size={22} strokeWidth={2} />
         </div>
@@ -26,7 +26,7 @@ export default function XDM({ chat, items, byId, onTap }) {
       <div className="msgs xd-msgs">
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first, last } = g[i];
           const big = it.kind === 'msg' && bigEmoji(it);
@@ -42,7 +42,7 @@ export default function XDM({ chat, items, byId, onTap }) {
               </div>
               {last && it.kind === 'msg' && (
                 <div className="xd-meta">
-                  {chat.group && side === 'them' ? senderOf(it, chat).name + ' · ' : ''}{to12(it.time)}{it.edited ? ' · Edited' : ''}{i === lastMeIdx && it.status === 'read' ? ' · Seen' : ''}
+                  {chat.group && side === 'them' ? senderOf(it, chat).name + ' · ' : ''}{chat.timeFmt === '24' ? it.time : chat.timeFmt === '12' || chat._lang === 'en' ? to12(it.time) : it.time}{it.edited ? ' · ' + labels(chat).edited : ''}{i === lastMeIdx && it.status === 'read' ? ' · ' + tx(chat).seen : ''}
                 </div>
               )}
             </div>
@@ -54,7 +54,7 @@ export default function XDM({ chat, items, byId, onTap }) {
           <span className="xd-field">
             <Image size={20} strokeWidth={2} />
             <span className="xd-gif">GIF</span>
-            <span className="xd-ph"><Draft chat={chat} placeholder="Start a message" /></span>
+            <span className="xd-ph"><Draft chat={chat} placeholder={tx(chat).xPh} /></span>
             <Smile size={20} strokeWidth={2} />
             <SendHorizontal size={20} strokeWidth={2} />
           </span>

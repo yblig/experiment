@@ -1,5 +1,5 @@
 import { ArrowLeft, ChevronLeft, Video, Phone, MoreVertical, Smile, Paperclip, Camera, Mic, Plus, StickyNote } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard , sbAndroid , tx, labels , fmtTime } from './parts.jsx';
 
 // Original doodle wallpaper (drawn for this app), tiled behind the messages.
 const doodle = c => `url("data:image/svg+xml,${encodeURIComponent(
@@ -25,16 +25,17 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
   const typing = last?.kind === 'typing' && last.from !== 'me';
   const shown = typing && !chat.group ? items.slice(0, -1) : items;
   const tickGrey = dark ? 'rgba(233,237,239,.6)' : '#8696a0';
-  const sub = typing && !chat.group ? 'mengetik...' : chat.group && typing
-    ? `${(chat.participants.find(p => p.id === last.sender) || chat.participants[0] || {}).name || ''} mengetik...`
-    : chat.group ? chat.contact.status || chat.participants.map(p => p.name).concat('Anda').join(', ') : chat.contact.status;
+  const X = tx(chat);
+  const sub = typing && !chat.group ? X.typing : chat.group && typing
+    ? X.isTyping((chat.participants.find(p => p.id === last.sender) || chat.participants[0] || {}).name || '')
+    : chat.group ? chat.contact.status || chat.participants.map(p => p.name).concat(labels(chat).you).join(', ') : chat.contact.status;
   const shownItems = chat.group && typing ? items.slice(0, -1) : shown;
   const bg = wallpaperStyle(chat, { backgroundImage: doodle(dark ? 'rgba(255,255,255,.045)' : 'rgba(84,101,111,.09)'), backgroundSize: '160px 160px' });
   return (
     <div className={'shot wa ' + (dark ? 'dark' : 'light') + (ios ? ' ios' : '')} style={{ '--ts': chat.textScale || 1 }}>
       {ios ? (
         <div className="wa-head ios">
-          {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+          {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
           <div className="wa-head-row">
             <span className="wa-iback"><ChevronLeft size={32} strokeWidth={2.2} />{chat.contact.unread ? <b>{chat.contact.unread}</b> : null}</span>
             <Avatar contact={chat.contact} size={40} personIcon={chat.contact.avatar ? null : { bg: dark ? '#6a7175' : '#dfe5e7', fg: dark ? '#cfd4d6' : '#fff' }} />
@@ -48,7 +49,7 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
         </div>
       ) : (
       <div className="wa-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" />}
         <div className="wa-head-row">
           <ArrowLeft size={24} strokeWidth={2.2} />
           <Avatar contact={chat.contact} size={40} personIcon={chat.contact.avatar ? null : { bg: dark ? '#6a7175' : '#dfe5e7', fg: dark ? '#cfd4d6' : '#fff' }} />
@@ -66,13 +67,13 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
       <div className="msgs wa-msgs" style={bg}>
         {shownItems.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const first = ios ? g[i].last : g[i].first;
           if (it.kind === 'typing') {
             return (
               <div key={it.id} className={`wa-row ${side} ${first ? 'first' : ''}`} onClick={tap}>
-                <div className={`wa-b ${side} ${first ? 'tail' : ''}`}><span className="wa-typing">mengetik...</span></div>
+                <div className={`wa-b ${side} ${first ? 'tail' : ''}`}><span className="wa-typing">{X.typing}</span></div>
               </div>
             );
           }
@@ -80,8 +81,8 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
           const big = bigEmoji(it);
           const meta = (
             <>
-              {it.edited && <span className="wa-ed">Diedit</span>}
-              {it.time}
+              {it.edited && <span className="wa-ed">{labels(chat).edited}</span>}
+              {fmtTime(it.time, chat)}
               {side === 'me' && t !== 'deleted' && <Ticks status={it.status || 'sent'} color={it.status === 'read' ? '#53bdeb' : tickGrey} />}
             </>
           );
@@ -120,7 +121,7 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
         <div className="wa-input">
           <span className="wa-field">
             <Smile size={23} strokeWidth={1.8} />
-            <span className="wa-ph"><Draft chat={chat} placeholder="Ketik pesan" /></span>
+            <span className="wa-ph"><Draft chat={chat} placeholder={X.waPh} /></span>
             <Paperclip size={21} strokeWidth={1.8} />
             <Camera size={22} strokeWidth={1.8} />
           </span>

@@ -4,7 +4,7 @@ import { Sheet, toast } from '../components/ui.jsx';
 import { TplIcon } from '../components/TplGrid.jsx';
 import { useStore, TEMPLATES } from '../store.js';
 import { putMedia, fileToRawDataUrl, pickFile, pickFiles } from '../media.js';
-import { playChatSound, clearSoundCache, guessSlot } from '../chatSounds.js';
+import { playChatSound, testChatSound, clearSoundCache, guessSlot } from '../chatSounds.js';
 import { fx } from '../fx.js';
 
 const EXT = f => (f.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4) || 'mp3';
@@ -58,7 +58,7 @@ export default function SoundSheet({ open, onClose }) {
           <small>{kind === 'send' ? 'Kirim' : 'Terima'}</small>
           <span>{v?.ref ? <><Music size={11} /> {short(v.name)}</> : other?.ref ? <i style={{ fontWeight: 500 }}>= {short(other.name)}</i> : 'Bawaan'}</span>
         </button>
-        <button className="snd-ic press" onClick={() => playChatSound(playTpl, kind)} aria-label="Dengar"><Play size={14} /></button>
+        <button className="snd-ic press" onClick={async () => { const r = await testChatSound(playTpl, kind); if (!r.ok) fx.error(); toast(r.text); }} aria-label="Dengar"><Play size={14} /></button>
         {v?.ref && <button className="snd-ic press" onClick={() => { fx.tap(); setSlot(tpl, kind, null); }} aria-label="Reset"><RotateCcw size={14} /></button>}
       </div>
     );

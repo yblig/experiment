@@ -1,5 +1,5 @@
 import { ChevronLeft, Video, Shield } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard, sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard, sbAndroid , tx, labels } from './parts.jsx';
 
 const CLS = { time: 'tn-time', system: 'tn-time', unread: 'tn-time' };
 
@@ -10,7 +10,7 @@ export default function Tinder({ chat, items, byId, onTap }) {
   return (
     <div className={'shot tn ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="tn-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
         <div className="tn-head-row">
           <ChevronLeft size={32} strokeWidth={2.2} className="tn-pink" />
           <div className="tn-contact">
@@ -25,7 +25,7 @@ export default function Tinder({ chat, items, byId, onTap }) {
       <div className="msgs tn-msgs">
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first, last } = g[i];
           const big = it.kind === 'msg' && bigEmoji(it);
@@ -39,7 +39,7 @@ export default function Tinder({ chat, items, byId, onTap }) {
                   <Reaction it={it} />
                 </div>
               </div>
-              {i === lastMeIdx && it.status && <div className="tn-meta">{it.status === 'read' ? 'Read ✓' : 'Sent'}{it.edited ? ' · Edited' : ''}</div>}
+              {i === lastMeIdx && it.status && <div className="tn-meta">{it.status === 'read' ? tx(chat).read + ' ✓' : tx(chat).sent}{it.edited ? ' · ' + labels(chat).edited : ''}</div>}
             </div>
           );
         })}
@@ -47,8 +47,8 @@ export default function Tinder({ chat, items, byId, onTap }) {
       {chat.showInput !== false && (
         <div className="tn-input">
           <span className="tn-gif">GIF</span>
-          <span className="tn-ph"><Draft chat={chat} placeholder="Type a message" /></span>
-          <span className="tn-send">SEND</span>
+          <span className="tn-ph"><Draft chat={chat} placeholder={tx(chat).tinderPh} /></span>
+          <span className="tn-send">{tx(chat).sendBtn}</span>
         </div>
       )}
       <Keyboard chat={chat} />

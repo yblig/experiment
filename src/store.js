@@ -37,7 +37,7 @@ const DEFAULTS = {
   group: false, participants: [], wallpaper: { type: 'default', value: '' }, verified: false, textScale: 1,
   watermark: '', charging: false, autoTime: false, pinned: false,
   notif: { on: false, from: '', text: '', when: 'sekarang', color: '#34c759' }, keyboard: false, draft: '', pinnedText: '', lockApp: 'Pesan', lockColor: '#34c759',
-  waStyle: 'android', textStyle: 'normal', bubble: 'original', statusDefault: false, sbStyle: 'auto'
+  waStyle: 'android', lang: 'auto', textStyle: 'normal', bubble: 'original', statusDefault: false, sbStyle: 'auto'
 };
 
 export function normalize(c) {
@@ -142,6 +142,10 @@ export const useStore = create((set, get) => ({
     const messages = p.messages.map(m => { const nid = uid(); map[m.id] = nid; return { ...m, id: nid }; }).map(m => (m.replyTo ? { ...m, replyTo: map[m.replyTo] } : m));
     return get().addChat({ ...structuredClone(p), id: uid(), messages, updatedAt: Date.now() });
   },
+  setLabel(id, label) {
+    set({ chats: get().chats.map(c => (c.id === id ? { ...c, label: label || '' } : c)) });
+    persist();
+  },
   togglePin(id) {
     set({ chats: get().chats.map(c => (c.id === id ? { ...c, pinned: !c.pinned } : c)) });
     persist();
@@ -154,9 +158,9 @@ export const useStore = create((set, get) => ({
     set({ chats: [] });
     persist();
   },
-  async exportAll() {
+  async exportAll(ids) {
     const chats = [];
-    for (const c of get().chats) {
+    for (const c of get().chats.filter(x => !ids || ids.includes(x.id))) {
       const messages = [];
       for (const m of c.messages) messages.push(m.image ? { ...m, image: await readAsDataUrl(m.image).catch(() => null) } : m);
       const wallpaper = c.wallpaper?.type === 'image' ? { ...c.wallpaper, value: await readAsDataUrl(c.wallpaper.value).catch(() => '') } : c.wallpaper;

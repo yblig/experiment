@@ -3,26 +3,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, SlidersHorizontal, Download, Send, Plus, Moon, Sun, ChevronUp, ChevronDown, Trash2, Copy, Undo2, Redo2, Play,
   Clock3, MoreHorizontal, Eraser, ArrowLeftRight, Camera, ImageOff, Share2, Film, Check, Image as ImageIcon, Mic, Phone, Ban,
-  Type, Info, BellDot, FileText, Reply, X, Users, UserPlus, ClipboardCopy, Frame, MapPin, Sticker, Contact, BookmarkPlus, List, MoreVertical, ChevronDown as Caret, Minus, LayoutGrid, Clapperboard, Volume2
+  Type, Info, BellDot, FileText, Reply, X, Users, UserPlus, ClipboardCopy, Frame, MapPin, Sticker, Contact, BookmarkPlus, List, MoreVertical, ChevronDown as Caret, Minus, LayoutGrid, Clapperboard, Volume2, Dices, Search, CheckCheck, Star, Palette, Forward, BarChart3, Video as VideoIc, Eye, Maximize2, Lightbulb, Smile, ListChecks, Timer, Shuffle, PlayCircle
 } from 'lucide-react';
 import { useStore, TEMPLATES, uid, addMinutes, PCOLORS } from '../store.js';
 import { Sheet, Seg, Switch, toast, useBack } from '../components/ui.jsx';
 import Shot, { FRAMES } from '../templates/Shot.jsx';
 import TplGrid, { TplIcon } from '../components/TplGrid.jsx';
 import Player from './Player.jsx';
-import { to12, LABELS, quoteText } from '../templates/parts.jsx';
+import MsgList from './MsgList.jsx';
+import { randomIdea, randomName, randomPhone, STATUS_PRESETS } from '../ideas.js';
+import { to12, labels, quoteText } from '../templates/parts.jsx';
 import { renderPng, savePng, sharePngs, fileBase, frame916, FRAME_BGS, saveVideo, shareVideo } from '../exporter.js';
 import { exportVideo, videoSupported } from '../video.js';
 import { putImage, fileToDataUrl, pickFile, mediaUrl } from '../media.js';
 import { parseScript, applyScript, chatToScript } from '../script.js';
 import { fx } from '../fx.js';
-import { playChatSound, soundUrl } from '../chatSounds.js';
+import { playChatSound, soundUrl, preloadChatSounds } from '../chatSounds.js';
 
 const timeLabel = (tpl, clock) => (tpl === 'imessage' ? `Today ${to12(clock)}` : tpl === 'whatsapp' ? 'HARI INI' : tpl === 'telegram' ? 'Hari ini' : tpl === 'instagram' ? `Today ${to12(clock)}` : tpl === 'sms' || tpl === 'lock' ? 'Hari ini' : 'Today');
 const isAutoLabel = (txt, clock) => Object.keys(TEMPLATES).some(t => timeLabel(t, clock) === txt) || /^Today( \d|$)/.test(txt) || txt === 'HARI INI' || txt === 'Hari ini';
 const statusOpts = [['sent', 'Terkirim'], ['delivered', 'Diterima'], ['read', 'Dibaca']];
 const REACTS = ['❤️', '😂', '😮', '😢', '🙏', '👍', '🔥', '💀'];
-const TYPES = [['text', 'Teks', Type], ['image', 'Foto', ImageIcon], ['sticker', 'Stiker', Sticker], ['voice', 'Suara', Mic], ['call', 'Telepon', Phone], ['location', 'Lokasi', MapPin], ['contact', 'Kontak', Contact], ['deleted', 'Dihapus', Ban]];
+const TYPES = [['text', 'Teks', Type], ['image', 'Foto', ImageIcon], ['videomsg', 'Video', VideoIc], ['sticker', 'Stiker', Sticker], ['voice', 'Suara', Mic], ['call', 'Telepon', Phone], ['location', 'Lokasi', MapPin], ['contact', 'Kontak', Contact], ['file', 'Dokumen', FileText], ['poll', 'Polling', BarChart3], ['viewonce', 'Sekali lihat', Eye], ['deleted', 'Dihapus', Ban]];
+const QUICK_EMOJI = ['😂', '😭', '❤️', '🙏', '🔥', '😡', '😱', '👍', '🤣', '🥺'];
+const BUBBLE_COLORS = ['', '#0a84ff', '#30d158', '#25d366', '#ff375f', '#bf5af2', '#ff9f0a', '#ffd60a', '#1c1c1e', '#8e8e93'];
 const CALLS = [['missed-voice', 'Tak terjawab'], ['missed-video', 'Video tak terjawab'], ['voice', 'Suara'], ['video', 'Video']];
 const SIZES = [
   ['916', 'TikTok', 'TikTok / Reels / Shorts', '9:16 · 1080×1920', [18, 32]],
@@ -54,6 +58,15 @@ export default function Editor({ id, onClose }) {
   const [playing, setPlaying] = useState(false);
   const [script, setScript] = useState('');
   const [replying, setReplying] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [quick, setQuick] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [sel, setSel] = useState(() => new Set());
+  const [find, setFind] = useState({ q: '', r: '' });
+  const [retime, setRetime] = useState({ start: '', step: 1 });
+  const [playFrom, setPlayFrom] = useState(0);
+  const [full, setFull] = useState(false);
+  const [mood, setMood] = useState('lucu');
   const stageRef = useRef(null);
   const shotRef = useRef(null);
   const offRef = useRef(null);
@@ -63,6 +76,7 @@ export default function Editor({ id, onClose }) {
   const [vid, setVid] = useState({ speed: 1, sound: true, busy: null, result: null });
 
   useBack(!sheet && !playing, onClose);
+  useEffect(() => { if (chat?.template) preloadChatSounds(chat.template); }, [chat?.template]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!chat) onClose(); }, [chat, onClose]);
   useLayoutEffect(() => {
     const el = stageRef.current;
@@ -89,7 +103,9 @@ export default function Editor({ id, onClose }) {
   const msgs = chat.messages;
   const frameH = FRAMES[chat.frame || 'phone'] || 844;
   const scale = phone ? Math.min((box.w - 16) / 390, (box.h - 12) / frameH) : Math.min((box.w - 16) / 390, 1);
-  const L = LABELS[chat.template] || LABELS.imessage;
+  const cLang = chat.lang && chat.lang !== 'auto' ? chat.lang : settings.lang || 'id';
+  const chatL = { ...chat, _lang: cLang };
+  const L = labels(chatL);
   const sideFrom = side === 'me' ? 'me' : 'them';
   const sideSender = chat.group && side !== 'me' ? side : undefined;
   const sideName = side === 'me' ? 'Aku' : chat.group ? chat.participants.find(p => p.id === side)?.name || 'Dia' : chat.contact.name || 'Dia';
@@ -105,7 +121,8 @@ export default function Editor({ id, onClose }) {
 
   const pushMsg = m => {
     const time = nextTime();
-    const msg = { id: uid(), kind: 'msg', from: sideFrom, sender: sideSender, text: '', time, status: sideFrom === 'me' ? 'read' : 'sent', ...m };
+    const msg = { id: uid(), kind: 'msg', from: sideFrom, sender: sideSender, text: '', time, status: sideFrom === 'me' ? 'read' : 'sent', ...(replyTo ? { replyTo } : {}), ...m };
+    setReplyTo(null);
     up(c => {
       const list = [...c.messages];
       const last = list[list.length - 1];
@@ -113,7 +130,14 @@ export default function Editor({ id, onClose }) {
       return { ...c, messages: [...list, msg], clock: c.autoTime ? time : c.clock };
     });
     playChatSound(chat.template, msg.from === 'me' ? 'send' : 'recv');
+    if (settings.autoSwitch) {
+      const order = chat.group ? ['me', ...chat.participants.map(p => p.id)] : ['me', 'them'];
+      setSide(order[(order.indexOf(side) + 1) % order.length] || 'me');
+    }
   };
+  const toggleSel = mid => setSel(prev => { const n = new Set(prev); n.has(mid) ? n.delete(mid) : n.add(mid); return n; });
+  const bulk = fn => { up(c => ({ ...c, messages: fn(c.messages) })); fx.tap(); };
+  const findCount = find.q ? msgs.reduce((a, m) => a + ((m.text || '').split(find.q).length - 1), 0) : 0;
   const send = () => {
     const t = text.trim();
     if (!t) return;
@@ -199,7 +223,7 @@ export default function Editor({ id, onClose }) {
         const fr = view.frame;
         return renderPng(offRef.current, 1080 / 390, chat.template, OUTS[fr] || null);
       };
-      const res = await exportVideo({ chat, renderScene, sounds: { send: soundUrl(chat.template, 'send'), receive: soundUrl(chat.template, 'recv') }, speed: vid.speed, sound: vid.sound, bgIdx: settings.frameBg || 0,
+      const res = await exportVideo({ chat, renderScene, sounds: { send: soundUrl(chat.template, 'send'), receive: soundUrl(chat.template, 'recv') }, speed: vid.speed, sound: vid.sound, bgIdx: settings.frameBg || 0, music: settings.vMusic || 'none', musicVol: settings.vMusicVol ?? 0.45, keys: settings.vKeys !== false, title: chat.videoTitle || '', titleStyle: chat.videoTitleStyle || 'box', quality: settings.vQuality || '1080', fps: settings.vFps || 30,
         onProgress: (label, p) => setVid(v => ({ ...v, busy: { label, p } })) });
       setVid(v => ({ ...v, busy: { label: 'Menyimpan video…', p: 0.97 } }));
       const name = fileBase(chat.title);
@@ -244,28 +268,21 @@ export default function Editor({ id, onClose }) {
         </div>
       ) : (
         <div className="scroll list" ref={stageRef}>
+          {msgs.length > 0 && (
+            <div className="list-bar">
+              <button className={'chip press' + (selecting ? ' on' : '')} style={{ '--c': '#7c6cff' }} onClick={() => { fx.toggle(); setSelecting(v => !v); setSel(new Set()); }}><ListChecks size={15} /> {selecting ? 'Batal pilih' : 'Pilih banyak'}</button>
+              {selecting && <button className="chip press" onClick={() => { fx.tap(); setSel(new Set(msgs.map(m => m.id))); }}>Pilih semua</button>}
+              <span className="note" style={{ padding: 0, marginLeft: 'auto' }}>{selecting ? `${sel.size} dipilih` : 'Tahan ⋮⋮ untuk geser'}</span>
+            </div>
+          )}
           {msgs.length === 0 && <p className="note" style={{ textAlign: 'center', padding: 30 }}>Belum ada pesan. Tulis di bawah, atau impor naskah dari menu +.</p>}
-          {msgs.map((m, i) => {
-            const label = m.kind === 'time' ? 'WAKTU' : m.kind === 'system' ? 'INFO' : m.kind === 'unread' ? 'BARU' : nameOf(m).toUpperCase().slice(0, 8);
-            return (
-              <motion.div layout key={m.id} className="li press" onClick={() => openEdit(i)} transition={{ duration: 0.2 }}>
-                <span className={'who ' + (['time', 'system', 'unread'].includes(m.kind) ? 'time' : m.from)}>{label}</span>
-                <span className="txt">
-                  {m.kind === 'typing' ? <i style={{ color: 'var(--sub)' }}>sedang mengetik…</i> : m.kind === 'msg' ? (m.reaction ? m.reaction + ' ' : '') + quoteText(m, chat.template) : m.text}
-                </span>
-                {m.kind === 'msg' && <span className="tm">{m.time}</span>}
-                <span className="mv" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => move(i, -1)} aria-label="Naik"><ChevronUp size={18} /></button>
-                  <button onClick={() => move(i, 1)} aria-label="Turun"><ChevronDown size={18} /></button>
-                </span>
-              </motion.div>
-            );
-          })}
+          <MsgList msgs={msgs} chatL={chatL} nameOf={nameOf} onTap={openEdit} selecting={selecting} sel={sel} onToggle={toggleSel}
+            onReorder={list => up(c => ({ ...c, messages: list }))} />
         </div>
       )}
 
       {view === 'preview' && (
-        <div className="pov-fabs">
+        <div className="pov-fabs" style={{ bottom: `calc(${84 + (quick && !selecting ? 44 : 0) + (replyTo && !selecting ? 52 : 0)}px + var(--sbm))` }}>
           <button className="pov-save press" onClick={() => { fx.tap(); doExport('save'); }} aria-label="Simpan" disabled={!!busy}>
             {busy ? <span className="spin" /> : <Download size={28} strokeWidth={2.2} />}
           </button>
@@ -275,6 +292,32 @@ export default function Editor({ id, onClose }) {
         </div>
       )}
 
+      {replyTo && msgs.find(m => m.id === replyTo) && !selecting && (
+        <div className="reply-bar">
+          <Reply size={16} />
+          <span><b>{nameOf(msgs.find(m => m.id === replyTo))}</b>{quoteText(msgs.find(m => m.id === replyTo), chatL)}</span>
+          <button className="icon-btn press" style={{ width: 34, height: 34 }} onClick={() => { fx.tap(); setReplyTo(null); }} aria-label="Batal balas"><X size={16} /></button>
+        </div>
+      )}
+      {quick && !selecting && (
+        <div className="quick-row">
+          <button className="chip press" style={{ '--c': '#ffc145' }} onClick={() => { fx.tap(); setText(randomIdea(mood)); }}><Lightbulb size={14} /> Ide</button>
+          <button className="chip press" onClick={() => { fx.toggle(); setMood(m => ({ lucu: 'horor', horor: 'romantis', romantis: 'drama', drama: 'lucu' })[m]); }}>{mood}</button>
+          {QUICK_EMOJI.map(e => <button key={e} className="qe press" onClick={() => { fx.tap(); setText(t => t + e); }}>{e}</button>)}
+          {(settings.phrases || ['wkwk', 'otw', 'siap', 'hah?', 'oke', '??']).map(ph => (
+            <button key={ph} className="chip press" onClick={() => pushMsg({ text: ph })}>{ph}</button>
+          ))}
+        </div>
+      )}
+      {selecting ? (
+        <div className="composer sel-bar">
+          <button className="btn danger press" disabled={!sel.size} onClick={() => { bulk(l => l.filter(m => !sel.has(m.id))); toast(`${sel.size} pesan dihapus`, { label: 'URUNGKAN', fn: () => undo(id) }); setSel(new Set()); }}><Trash2 size={17} /></button>
+          <button className="btn ghost press" disabled={!sel.size} onClick={() => bulk(l => l.map(m => (sel.has(m.id) && m.from ? { ...m, from: 'me', sender: undefined } : m)))}>→ Aku</button>
+          <button className="btn ghost press" disabled={!sel.size} onClick={() => bulk(l => l.map(m => (sel.has(m.id) && m.from ? { ...m, from: 'them', sender: chat.group ? chat.participants[0]?.id : undefined } : m)))}>→ Dia</button>
+          <button className="btn ghost press" disabled={!sel.size} onClick={() => bulk(l => l.flatMap(m => (sel.has(m.id) ? [m, { ...m, id: uid() }] : [m])))}><Copy size={17} /></button>
+          <button className="btn ghost press" disabled={!sel.size} onClick={() => bulk(l => l.map(m => (sel.has(m.id) && m.from === 'me' ? { ...m, status: 'read' } : m)))}><CheckCheck size={17} /></button>
+        </div>
+      ) : (
       <div className="composer">
         <button className={'side-btn press ' + sideFrom} onClick={cycleSide}
           style={chat.group && side !== 'me' ? { color: chat.participants.find(p => p.id === side)?.color } : null}>
@@ -285,14 +328,23 @@ export default function Editor({ id, onClose }) {
         {text.trim()
           ? <button className="send-btn press" onClick={send} aria-label="Kirim"><Send size={20} /></button>
           : <button className="plus-btn press" onClick={() => { fx.tap(); setSheet('plus'); }} aria-label="Tambah"><Plus size={22} /></button>}
+        <button className={'plus-btn press' + (quick ? ' on' : '')} style={{ width: 40 }} onClick={() => { fx.toggle(); setQuick(q => !q); }} aria-label="Emoji & ide"><Smile size={20} /></button>
       </div>
+      )}
 
       <div className="offscreen" aria-hidden>
         {offView ? <Shot ref={offRef} chat={offView.chat} phase={offView.phase} />
           : offUpto !== null || busy ? <Shot ref={offRef} chat={chat} upto={offUpto ?? undefined} /> : null}
       </div>
 
-      <AnimatePresence>{playing && <Player key="pl" chat={chat} onClose={() => setPlaying(false)} />}</AnimatePresence>
+      <AnimatePresence>{playing && <Player key="pl" chat={chat} startAt={playFrom} onClose={() => { setPlaying(false); setPlayFrom(0); }} />}</AnimatePresence>
+      <AnimatePresence>
+        {full && (
+          <motion.div key="full" className="player" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setFull(false)}>
+            <FullView chat={chat} onClose={() => setFull(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* + menu */}
       <Sheet open={sheet === 'plus'} onClose={() => setSheet(null)} title={`Tambah (dari ${sideName})`}>
@@ -304,12 +356,20 @@ export default function Editor({ id, onClose }) {
           <button className="press" onClick={() => { setSheet(null); pushMsg({ type: 'voice', duration: '0:' + String(5 + Math.floor(Math.random() * 50)).padStart(2, '0') }); }}><Mic size={22} />Voice note</button>
           <button className="press" onClick={() => { setSheet(null); pushMsg({ type: 'call', call: 'missed-voice' }); }}><Phone size={22} />Telepon</button>
           <button className="press" onClick={() => { setSheet(null); pushMsg({ type: 'deleted' }); }}><Ban size={22} />Dihapus</button>
+          <button className="press" onClick={() => addPhoto('videomsg')}><VideoIc size={22} />Video</button>
+          <button className="press" onClick={() => { setSheet(null); pushMsg({ type: 'viewonce' }); }}><Eye size={22} />Sekali lihat</button>
+          <button className="press" onClick={() => { setSheet(null); pushMsg({ type: 'file', fname: 'tugas_akhir_revisi.pdf', fsize: '2,4 MB', fpages: 12 }); }}><FileText size={22} />Dokumen</button>
+          <button className="press" onClick={() => { setSheet(null); pushMsg({ type: 'poll', text: 'Jadi kumpul jam berapa?', poll: [{ t: 'Jam 7', v: 3 }, { t: 'Jam 8', v: 5, mine: true }, { t: 'Gak jadi aja', v: 1 }] }); }}><BarChart3 size={22} />Polling</button>
         </div>
         <button className="menu-item press" onClick={() => addItem({ kind: 'typing', from: sideFrom, sender: sideSender })}><MoreHorizontal size={20} /> {sideName} sedang mengetik…</button>
         <button className="menu-item press" onClick={() => addItem({ kind: 'time', text: timeLabel(chat.template, chat.clock) })}><Clock3 size={20} /> Pembatas waktu</button>
         <button className="menu-item press" onClick={() => addItem({ kind: 'unread', text: L.unread })}><BellDot size={20} /> Pembatas "belum dibaca"</button>
-        <button className="menu-item press" onClick={() => addItem({ kind: 'system', text: chat.group ? `${chat.participants[0]?.name || 'Dimas'} keluar` : 'Kamu memblokir kontak ini' })}><Info size={20} /> Pesan sistem</button>
+        <button className="menu-item press" onClick={() => addItem({ kind: 'system', text: cLang === 'en' ? (chat.group ? `${chat.participants[0]?.name || 'Dimas'} left` : 'You blocked this contact') : (chat.group ? `${chat.participants[0]?.name || 'Dimas'} keluar` : 'Kamu memblokir kontak ini') })}><Info size={20} /> Pesan sistem</button>
         <button className="menu-item press" onClick={() => { fx.tap(); setScript(''); setSheet('import'); }}><FileText size={20} /> Impor naskah teks</button>
+        <button className="menu-item press" onClick={() => { fx.tap(); setFind({ q: '', r: '' }); setSheet('find'); }}><Search size={20} /> Cari & ganti teks</button>
+        <button className="menu-item press" onClick={() => { fx.tap(); setRetime({ start: msgs.find(m => m.time)?.time || chat.clock, step: 1 }); setSheet('retime'); }}><Timer size={20} /> Atur jam semua pesan</button>
+        <button className="menu-item press" disabled={!msgs.length} onClick={() => { bulk(l => l.map(m => (m.from === 'me' && m.kind === 'msg' ? { ...m, status: 'read' } : m))); setSheet(null); toast('Semua pesanmu ditandai dibaca'); }}><CheckCheck size={20} /> Tandai semua pesanku dibaca</button>
+        <button className="menu-item press" disabled={!msgs.length} onClick={() => { fx.tap(); setSheet(null); setView('list'); setSelecting(true); setSel(new Set()); }}><ListChecks size={20} /> Pilih banyak pesan</button>
         <button className="menu-item press" onClick={() => { fx.toggle(); up(c => ({ ...c, messages: c.messages.map(m => (m.from ? { ...m, from: m.from === 'me' ? 'them' : 'me', sender: m.from === 'me' ? c.participants[0]?.id : undefined } : m)) })); setSheet(null); }}>
           <ArrowLeftRight size={20} /> Tukar semua sisi (aku ↔ dia)
         </button>
@@ -350,6 +410,25 @@ export default function Editor({ id, onClose }) {
                 </div>
               </div>
             )}
+            {cur.kind === 'msg' && cur.type === 'file' && (
+              <div className="grid2" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+                <div className="field"><label>Nama file</label><input className="input" value={cur.fname || ''} onChange={e => patchMsg(editIdx, { fname: e.target.value })} /></div>
+                <div className="field"><label>Ukuran</label><input className="input" value={cur.fsize || ''} placeholder="2,4 MB" onChange={e => patchMsg(editIdx, { fsize: e.target.value })} /></div>
+                <div className="field"><label>Halaman</label><input className="input" inputMode="numeric" value={cur.fpages || ''} onChange={e => patchMsg(editIdx, { fpages: e.target.value.replace(/\D/g, '') })} /></div>
+              </div>
+            )}
+            {cur.kind === 'msg' && cur.type === 'poll' && (
+              <div className="field">
+                <label>Pilihan (satu per baris, format: pilihan | jumlah suara, tambah * untuk pilihanmu)</label>
+                <textarea className="input" style={{ fontFamily: 'monospace', fontSize: 13.5 }} value={(cur.poll || []).map(o => `${o.mine ? '*' : ''}${o.t} | ${o.v || 0}`).join('\n')}
+                  onChange={e => patchMsg(editIdx, { poll: e.target.value.split('\n').filter(Boolean).map(line => { const [t, v] = line.split('|'); const mine = t.trim().startsWith('*'); return { t: t.trim().replace(/^\*/, ''), v: parseInt(v, 10) || 0, mine }; }) })} />
+              </div>
+            )}
+            {cur.kind === 'msg' && cur.type === 'viewonce' && (
+              <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)', marginBottom: 14 }}>
+                <div className="row"><span className="lbl">Sudah dibuka</span><Switch on={!!cur.onceOpened} onChange={v => patchMsg(editIdx, { onceOpened: v })} /></div>
+              </div>
+            )}
             {cur.kind === 'msg' && cur.type === 'location' && (
               <div className="grid2">
                 <div className="field"><label>Nama tempat</label><input className="input" value={cur.place || ''} onChange={e => patchMsg(editIdx, { place: e.target.value })} /></div>
@@ -365,7 +444,7 @@ export default function Editor({ id, onClose }) {
             {cur.kind === 'msg' && (cur.type || 'text') === 'text' && /(https?:\/\/|www\.)/i.test(cur.text || '') && (
               <div className="field"><label>Judul pratinjau link</label><input className="input" value={cur.linkTitle || ''} placeholder="Judul halaman" onChange={e => patchMsg(editIdx, { linkTitle: e.target.value })} /></div>
             )}
-            {cur.kind === 'msg' && (cur.type === 'image' || cur.type === 'sticker') && (
+            {cur.kind === 'msg' && (cur.type === 'image' || cur.type === 'sticker' || cur.type === 'videomsg') && (
               <div className="field">
                 <label>Foto</label>
                 <div className="img-pick">
@@ -377,14 +456,18 @@ export default function Editor({ id, onClose }) {
                 </div>
               </div>
             )}
-            {(cur.kind !== 'typing' && cur.kind !== 'msg') || (cur.kind === 'msg' && ['text', 'image', undefined].includes(cur.type)) ? (
+            {(cur.kind !== 'typing' && cur.kind !== 'msg') || (cur.kind === 'msg' && ['text', 'image', 'videomsg', 'poll', undefined].includes(cur.type)) ? (
               <div className="field">
-                <label>{cur.kind === 'msg' ? (cur.type === 'image' ? 'Keterangan foto (boleh kosong)' : 'Isi pesan') : 'Teks'}</label>
+                <label>{cur.kind === 'msg' ? (cur.type === 'poll' ? 'Pertanyaan polling' : cur.type === 'image' || cur.type === 'videomsg' ? 'Keterangan (boleh kosong)' : 'Isi pesan') : 'Teks'}</label>
                 {cur.kind === 'msg'
                   ? <textarea className="input" value={cur.text} onChange={e => patchMsg(editIdx, { text: e.target.value })} />
                   : <input className="input" value={cur.text} onChange={e => patchMsg(editIdx, { text: e.target.value })} />}
               </div>
             ) : null}
+            {cur.kind === 'msg' && cur.type === 'videomsg' && (
+              <div className="field"><label>Durasi video</label>
+                <input className="input" value={cur.duration || ''} placeholder="0:15" onChange={e => patchMsg(editIdx, { duration: e.target.value.slice(0, 6) })} /></div>
+            )}
             {cur.kind === 'msg' && cur.type === 'voice' && (
               <div className="field"><label>Durasi</label>
                 <input className="input" value={cur.duration || ''} placeholder="0:12" onChange={e => patchMsg(editIdx, { duration: e.target.value.slice(0, 6) })} /></div>
@@ -438,7 +521,7 @@ export default function Editor({ id, onClose }) {
                   {cur.replyTo && msgs.find(m => m.id === cur.replyTo) ? (
                     <div className="li" style={{ marginBottom: 0 }}>
                       <Reply size={16} />
-                      <span className="txt">{quoteText(msgs.find(m => m.id === cur.replyTo), chat.template)}</span>
+                      <span className="txt">{quoteText(msgs.find(m => m.id === cur.replyTo), chatL)}</span>
                       <button className="icon-btn press" style={{ width: 34, height: 34 }} onClick={() => { fx.tap(); patchMsg(editIdx, { replyTo: null }); }} aria-label="Hapus balasan"><X size={16} /></button>
                     </div>
                   ) : (
@@ -448,7 +531,7 @@ export default function Editor({ id, onClose }) {
                     <div className="reply-list" style={{ marginTop: 8 }}>
                       {pickReplyable.map(({ m }) => (
                         <button key={m.id} className="press" onClick={() => { fx.tap(); patchMsg(editIdx, { replyTo: m.id }); setReplying(false); }}>
-                          <b>{nameOf(m)}:</b> {quoteText(m, chat.template)}
+                          <b>{nameOf(m)}:</b> {quoteText(m, chatL)}
                         </button>
                       ))}
                     </div>
@@ -456,6 +539,16 @@ export default function Editor({ id, onClose }) {
                 </div>
                 <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)' }}>
                   <div className="row"><span className="lbl">Tandai "diedit"</span><Switch on={!!cur.edited} onChange={v => patchMsg(editIdx, { edited: v })} /></div>
+                  <div className="row"><Forward size={18} /><span className="lbl">Label "diteruskan"</span><Switch on={!!cur.forwarded} onChange={v => patchMsg(editIdx, { forwarded: v })} /></div>
+                  <div className="row"><Star size={18} /><span className="lbl">Berbintang</span><Switch on={!!cur.starred} onChange={v => patchMsg(editIdx, { starred: v })} /></div>
+                </div>
+                <div className="field" style={{ marginTop: 12 }}>
+                  <label>{`Jeda sebelum pesan ini di video/Mode Putar: ${cur.pause ? cur.pause + ' detik' : 'otomatis'}`}</label>
+                  <input type="range" min="0" max="10" step="0.5" value={cur.pause || 0} style={{ width: '100%', accentColor: tplColor }} onChange={e => patchMsg(editIdx, { pause: +e.target.value || 0 })} />
+                </div>
+                <div className="grid2" style={{ marginBottom: 10 }}>
+                  <button className="btn ghost press" onClick={() => { fx.tap(); setReplyTo(cur.id); setSheet(null); }}><Reply size={17} /> Balas ini</button>
+                  <button className="btn ghost press" onClick={() => { fx.tap(); setPlayFrom(editIdx); setSheet(null); setPlaying(true); }}><PlayCircle size={17} /> Putar dari sini</button>
                 </div>
               </>
             )}
@@ -470,6 +563,30 @@ export default function Editor({ id, onClose }) {
             </div>
           </>
         )}
+      </Sheet>
+
+      {/* find & replace */}
+      <Sheet open={sheet === 'find'} onClose={() => setSheet(null)} title="Cari & ganti">
+        <div className="field"><label>Cari</label><input className="input" value={find.q} onChange={e => setFind(f => ({ ...f, q: e.target.value }))} autoFocus /></div>
+        <div className="field"><label>Ganti dengan</label><input className="input" value={find.r} onChange={e => setFind(f => ({ ...f, r: e.target.value }))} /></div>
+        <p className="note">{find.q ? `${findCount} ditemukan` : 'Ketik kata yang mau dicari, misalnya nama orang.'}</p>
+        <button className="btn primary block press" style={{ marginTop: 10 }} disabled={!findCount} onClick={() => {
+          bulk(l => l.map(m => (m.text ? { ...m, text: m.text.split(find.q).join(find.r) } : m)));
+          toast(`${findCount} diganti`, { label: 'URUNGKAN', fn: () => undo(id) }); setSheet(null);
+        }}><Search size={18} /> Ganti semua</button>
+      </Sheet>
+
+      {/* retime */}
+      <Sheet open={sheet === 'retime'} onClose={() => setSheet(null)} title="Atur jam semua pesan">
+        <div className="grid2">
+          <div className="field"><label>Jam pesan pertama</label><input className="input" type="time" value={retime.start} onChange={e => setRetime(r => ({ ...r, start: e.target.value }))} /></div>
+          <div className="field"><label>{`Jarak antar pesan: ${retime.step} menit`}</label><input type="range" min="0" max="15" value={retime.step} style={{ width: '100%', height: 48, accentColor: tplColor }} onChange={e => setRetime(r => ({ ...r, step: +e.target.value }))} /></div>
+        </div>
+        <button className="btn primary block press" disabled={!retime.start} onClick={() => {
+          let t = retime.start, first = true;
+          up(c => { const l = c.messages.map(m => { if (m.kind !== 'msg') return m; t = first ? t : addMinutes(t, retime.step); first = false; return { ...m, time: t }; }); return { ...c, messages: l, clock: t }; });
+          fx.success(); setSheet(null); toast('Jam semua pesan diatur ulang', { label: 'URUNGKAN', fn: () => undo(id) });
+        }}><Timer size={18} /> Terapkan</button>
       </Sheet>
 
       {/* video */}
@@ -498,7 +615,28 @@ export default function Editor({ id, onClose }) {
               <label>Kecepatan</label>
               <Seg value={vid.speed} onChange={v => setVid(x => ({ ...x, speed: v }))} options={[[1.4, 'Santai'], [1, 'Normal'], [0.7, 'Cepat']]} />
             </div>
+            <div className="field">
+              <label>Teks judul di video (mis. "POV: kamu pinjam duit ke temen")</label>
+              <textarea className="input" style={{ minHeight: 60 }} value={chat.videoTitle || ''} placeholder="Kosongkan kalau tidak perlu" onChange={e => up(c => ({ ...c, videoTitle: e.target.value.slice(0, 120) }))} />
+              {chat.videoTitle && <div style={{ marginTop: 8 }}><Seg value={chat.videoTitleStyle || 'box'} onChange={v => up(c => ({ ...c, videoTitleStyle: v }))} options={[['box', 'Kotak putih'], ['outline', 'Garis tepi']]} /></div>}
+            </div>
+            <div className="field">
+              <label>Musik latar</label>
+              <div className="mini-row">
+                {[['none', 'Tanpa'], ['chill', 'Santai'], ['lucu', 'Lucu'], ['horor', 'Horor'], ['romantis', 'Romantis'], ['drama', 'Drama'], ['semangat', 'Semangat']].map(([v, l]) => (
+                  <button key={v} className={'chip press' + ((settings.vMusic || 'none') === v ? ' on' : '')} style={{ '--c': '#b197fc' }} onClick={() => { fx.tap(); setSettings({ vMusic: v }); }}><i />{l}</button>
+                ))}
+              </div>
+              {(settings.vMusic || 'none') !== 'none' && (
+                <input type="range" min="0.1" max="0.9" step="0.05" value={settings.vMusicVol ?? 0.45} style={{ width: '100%', marginTop: 8, accentColor: '#b197fc' }} onChange={e => setSettings({ vMusicVol: +e.target.value })} aria-label="Volume musik" />
+              )}
+            </div>
+            <div className="grid2">
+              <div className="field"><label>Kualitas</label><Seg value={settings.vQuality || '1080'} onChange={v => setSettings({ vQuality: v })} options={[['720', '720p'], ['1080', '1080p']]} /></div>
+              <div className="field"><label>Frame rate</label><Seg value={settings.vFps || 30} onChange={v => setSettings({ vFps: v })} options={[[30, '30 fps'], [60, '60 fps']]} /></div>
+            </div>
             <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)', marginBottom: 14 }}>
+              <div className="row"><span className="lbl">Suara ketikan keyboard<small>Sebelum pesanmu muncul</small></span><Switch on={settings.vKeys !== false} onChange={v => setSettings({ vKeys: v })} /></div>
               <div className="row"><Volume2 size={19} /><span className="lbl">Suara notifikasi<small>{settings.sendSound?.ref || settings.recvSound?.ref ? 'Pakai suara pilihanmu' : `Suara khas ${TEMPLATES[chat.template]?.label}`} · ganti di Pengaturan</small></span><Switch on={vid.sound} onChange={v => setVid(x => ({ ...x, sound: v }))} /></div>
             </div>
             {chat.frame !== '916' && (
@@ -534,6 +672,11 @@ export default function Editor({ id, onClose }) {
           <Seg value={chat.dark ? 'dark' : 'light'} onChange={v => up(c => ({ ...c, dark: v === 'dark' }))} options={[['light', 'Mode terang'], ['dark', 'Mode gelap']]} />
           {chat.template === 'whatsapp' && <Seg value={chat.waStyle || 'android'} onChange={v => up(c => ({ ...c, waStyle: v }))} options={[['ios', 'WA iPhone'], ['android', 'WA Android']]} />}
         </div>
+        <div className="ref">
+          <span className="ref-lbl">Bahasa di dalam chat</span>
+          <Seg value={chat.lang || 'auto'} onChange={v => up(c => ({ ...c, lang: v }))} options={[['auto', 'Ikuti aplikasi'], ['id', 'Indonesia'], ['en', 'English']]} />
+          <p className="note" style={{ padding: '8px 2px 0' }}>Tulisan bawaan seperti Dibaca/Read, Hari ini/Today, mengetik/typing, kolom ketik. Isi pesanmu tidak diubah.</p>
+        </div>
         <div className="ref ref-row">
           <span className="ref-lbl">{chat.template === 'lock' ? 'Jam layar kunci' : 'Jam sekarang'}</span>
           <input className="ref-val" type="time" value={chat.clock} onChange={e => up(c => ({ ...c, clock: e.target.value || c.clock }))} />
@@ -556,6 +699,40 @@ export default function Editor({ id, onClose }) {
           <button className={'chk press' + (chat.statusDefault ? ' on' : '')} onClick={() => { fx.toggle(); up(c => ({ ...c, statusDefault: !c.statusDefault })); }}>
             <i>{chat.statusDefault && <Check size={16} strokeWidth={3} />}</i>Gunakan<br />default
           </button>
+        </div>
+        {!chat.statusDefault && (
+          <div className="mini-row" style={{ margin: '-4px 0 12px' }}>
+            {STATUS_PRESETS[cLang].map(st => <button key={st} className={'chip press' + (chat.contact.status === st ? ' on' : '')} style={{ '--c': '#2fd6a3' }} onClick={() => { fx.tap(); up(c => ({ ...c, contact: { ...c.contact, status: st } })); }}>{st}</button>)}
+          </div>
+        )}
+        <div className="ref">
+          <span className="ref-lbl">Warna gelembung aku</span>
+          <div className="swatches" style={{ marginTop: 10 }}>
+            {BUBBLE_COLORS.map(col => (
+              <button key={col || 'def'} className={'sw press' + ((chat.bubbleColor || '') === col ? ' on' : '')} style={{ background: col || 'conic-gradient(#25d366,#0a84ff,#ff375f,#ffd60a,#25d366)' }}
+                onClick={() => { fx.tap(); up(c => ({ ...c, bubbleColor: col })); }} aria-label={col || 'Bawaan'} />
+            ))}
+            <label className="sw press" style={{ background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }} aria-label="Warna lain">
+              <Palette size={18} />
+              <input type="color" value={chat.bubbleColor || '#0a84ff'} onChange={e => up(c => ({ ...c, bubbleColor: e.target.value }))} style={{ position: 'absolute', inset: 0, opacity: 0 }} />
+            </label>
+          </div>
+        </div>
+        <div className="ref">
+          <span className="ref-lbl">Font chat</span>
+          <Seg value={chat.chatFont || 'default'} onChange={v => up(c => ({ ...c, chatFont: v }))} options={[['default', 'Bawaan'], ['rounded', 'Bulat'], ['system', 'Sistem'], ['serif', 'Serif'], ['mono', 'Mono']]} />
+        </div>
+        <div className="ref">
+          <span className="ref-lbl">Status bar HP</span>
+          <Seg value={chat.signal ?? 4} onChange={v => up(c => ({ ...c, signal: v }))} options={[[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4 bar']]} />
+          <Seg value={chat.network || ''} onChange={v => up(c => ({ ...c, network: v }))} options={[['', 'Tanpa'], ['4G', '4G'], ['5G', '5G'], ['LTE', 'LTE'], ['E', 'E']]} />
+          <Seg value={chat.timeFmt || 'auto'} onChange={v => up(c => ({ ...c, timeFmt: v }))} options={[['auto', 'Jam otomatis'], ['24', '24 jam'], ['12', '12 jam']]} />
+          <div className="card group" style={{ boxShadow: 'none', background: 'transparent', marginTop: 6, marginBottom: 0 }}>
+            <div className="row"><span className="lbl">WiFi</span><Switch on={chat.wifi !== false} onChange={v => up(c => ({ ...c, wifi: v }))} /></div>
+            <div className="row"><span className="lbl">Mode pesawat</span><Switch on={!!chat.airplane} onChange={v => up(c => ({ ...c, airplane: v }))} /></div>
+            <div className="row"><span className="lbl">Gelap/terang otomatis dari jam<small>Gelap mulai 18.00 sampai 06.00</small></span><Switch on={!!chat.autoDark} onChange={v => up(c => ({ ...c, autoDark: v }))} /></div>
+            <div className="row"><span className="lbl">Format *tebal* _miring_ ~coret~ & @mention</span><Switch on={chat.richText !== false} onChange={v => up(c => ({ ...c, richText: v }))} /></div>
+          </div>
         </div>
         <div className="ref ref-row">
           <span className="ref-lbl">Bilah status baru</span>
@@ -606,11 +783,17 @@ export default function Editor({ id, onClose }) {
             {chat.contact.avatar && (
               <button className="icon-btn tinted press" onClick={() => { fx.del(); up(c => ({ ...c, contact: { ...c.contact, avatar: null } })); }} aria-label="Hapus foto"><ImageOff size={18} /></button>
             )}
+            <input className="input" style={{ width: 64, textAlign: 'center', fontSize: 22, padding: 0 }} placeholder="😀" value={chat.contact.emoji || ''} aria-label="Avatar emoji"
+              onChange={e => up(c => ({ ...c, contact: { ...c.contact, emoji: [...e.target.value].slice(-2).join('') } }))} />
           </div>
         </div>
         <div className="field">
           <label>{chat.group ? 'Nama grup' : 'Nama kontak'}</label>
-          <input className="input" value={chat.contact.name} onChange={e => up(c => ({ ...c, contact: { ...c.contact, name: e.target.value } }))} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input className="input" value={chat.contact.name} onChange={e => up(c => ({ ...c, contact: { ...c.contact, name: e.target.value } }))} />
+            <button className="icon-btn tinted press" onClick={() => { fx.toggle(); up(c => ({ ...c, contact: { ...c.contact, name: randomName() } })); }} aria-label="Nama acak"><Dices size={19} /></button>
+            <button className="icon-btn tinted press" onClick={() => { fx.toggle(); up(c => ({ ...c, contact: { ...c.contact, name: randomPhone() } })); }} aria-label="Nomor acak"><Shuffle size={18} /></button>
+          </div>
         </div>
         {['x', 'instagram'].includes(chat.template) && (
           <div className="field">
@@ -639,6 +822,10 @@ export default function Editor({ id, onClose }) {
               <div className="part" key={p.id}>
                 <button className="dot press" style={{ background: p.color }} aria-label="Warna"
                   onClick={() => { fx.tap(); up(c => ({ ...c, participants: c.participants.map(x => (x.id === p.id ? { ...x, color: PCOLORS[(PCOLORS.indexOf(x.color) + 1) % PCOLORS.length] } : x)) })); }} />
+                <button className="icon-btn tinted press" style={{ width: 42, height: 42, padding: 0, overflow: 'hidden', borderRadius: '50%' }} aria-label="Foto anggota"
+                  onClick={async () => { const f = await pickFile(); if (!f) return; try { const a = await fileToDataUrl(f, 200, true); up(c => ({ ...c, participants: c.participants.map(x => (x.id === p.id ? { ...x, avatar: a } : x)) })); fx.success(); } catch { fx.error(); } }}>
+                  {p.avatar ? <img src={p.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Camera size={16} />}
+                </button>
                 <input className="input" value={p.name} onChange={e => up(c => ({ ...c, participants: c.participants.map(x => (x.id === p.id ? { ...x, name: e.target.value } : x)) }))} />
                 <button className="icon-btn tinted press" disabled={chat.participants.length <= 1} onClick={() => { fx.del(); up(c => ({ ...c, participants: c.participants.filter(x => x.id !== p.id) })); }} aria-label="Hapus anggota"><Trash2 size={17} /></button>
               </div>
@@ -693,6 +880,12 @@ export default function Editor({ id, onClose }) {
         <div className="field">
           <label>Watermark (kosongkan untuk mematikan)</label>
           <input className="input" value={chat.watermark} placeholder="@akunmu" onChange={e => up(c => ({ ...c, watermark: e.target.value.slice(0, 30) }))} />
+          {chat.watermark && (
+            <>
+              <div style={{ marginTop: 8 }}><Seg value={chat.wmPos || 'center'} onChange={v => up(c => ({ ...c, wmPos: v }))} options={[['top', 'Atas'], ['center', 'Tengah'], ['bottom', 'Bawah'], ['corner', 'Pojok']]} /></div>
+              <input type="range" min="0.05" max="0.7" step="0.05" value={chat.wmOpacity ?? 0.16} style={{ width: '100%', marginTop: 8, accentColor: tplColor }} onChange={e => up(c => ({ ...c, wmOpacity: +e.target.value }))} aria-label="Transparansi watermark" />
+            </>
+          )}
         </div>
         <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)' }}>
           <div className="row"><span className="lbl">Centang verifikasi</span><Switch on={chat.verified} onChange={v => up(c => ({ ...c, verified: v }))} /></div>
@@ -740,6 +933,8 @@ export default function Editor({ id, onClose }) {
               <span>Mode Putar<br /><small className="note" style={{ padding: 0 }}>Pesan muncul satu-satu, tinggal rekam layar</small></span></button>
             <button className="menu-item press" onClick={() => { saveAsPreset(id); fx.success(); toast('Tersimpan di Preset › Preset saya'); }}><BookmarkPlus size={20} />
               <span>Simpan sebagai preset saya<br /><small className="note" style={{ padding: 0 }}>Pakai lagi kapan saja dari tab Preset</small></span></button>
+            <button className="menu-item press" onClick={() => { fx.tap(); setSheet(null); setFull(true); }}><Maximize2 size={20} />
+              <span>Pratinjau layar penuh<br /><small className="note" style={{ padding: 0 }}>Lihat hasil persis seperti di HP</small></span></button>
             <button className="menu-item press" onClick={async () => { const ok = await copyText(chatToScript(chat)); ok ? fx.success() : fx.error(); toast(ok ? 'Naskah chat disalin' : 'Gagal menyalin'); }}><ClipboardCopy size={20} />
               <span>Salin sebagai teks<br /><small className="note" style={{ padding: 0 }}>Format naskah, bisa diimpor lagi</small></span></button>
             <p className="note">{`Resolusi: ${settings.exportScale === 3 ? '1170' : '780'} px lebar. Ubah di Pengaturan.`}</p>
@@ -747,5 +942,19 @@ export default function Editor({ id, onClose }) {
         )}
       </Sheet>
     </>
+  );
+}
+
+function FullView({ chat }) {
+  const [sz, setSz] = useState({ w: innerWidth, h: innerHeight });
+  useEffect(() => { const r = () => setSz({ w: innerWidth, h: innerHeight }); addEventListener('resize', r); return () => removeEventListener('resize', r); }, []);
+  const h = { phone: 844, '916': 693.334, '45': 487.5, '11': 390 }[chat.frame] || 844;
+  const k = Math.min(sz.w / 390, sz.h / h);
+  return (
+    <div className="player-stage">
+      <div style={{ width: 390 * k, height: h * k }}>
+        <div style={{ width: 390, transform: `scale(${k})`, transformOrigin: 'top left' }}><Shot chat={chat} /></div>
+      </div>
+    </div>
   );
 }

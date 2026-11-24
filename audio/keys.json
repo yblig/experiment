@@ -1,0 +1,9 @@
+{ "keys": { "layers": [
+  { "wave": "noise", "freq": 6000, "duration": 0.03, "decay": 1, "volume": 0.9 },
+  { "wave": "noise", "freq": 5500, "duration": 0.03, "decay": 1, "delay": 0.11, "volume": 0.7 },
+  { "wave": "noise", "freq": 6500, "duration": 0.03, "decay": 1, "delay": 0.19, "volume": 0.85 },
+  { "wave": "noise", "freq": 6000, "duration": 0.03, "decay": 1, "delay": 0.31, "volume": 0.75 },
+  { "wave": "noise", "freq": 5800, "duration": 0.03, "decay": 1, "delay": 0.4, "volume": 0.9 },
+  { "wave": "noise", "freq": 6200, "duration": 0.03, "decay": 1, "delay": 0.52, "volume": 0.7 },
+  { "wave": "noise", "freq": 6000, "duration": 0.03, "decay": 1, "delay": 0.63, "volume": 0.8 }
+], "highpass": 2200, "lowpass": 9000, "volume": 0.45 } }

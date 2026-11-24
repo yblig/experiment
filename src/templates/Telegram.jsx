@@ -1,5 +1,5 @@
 import { ArrowLeft, MoreVertical, Smile, Paperclip, Mic, Phone } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard , sbAndroid , tx, labels , fmtTime } from './parts.jsx';
 
 // Original wallpaper: soft gradient with a faint scattered-shape pattern.
 const pattern = c => `url("data:image/svg+xml,${encodeURIComponent(
@@ -17,9 +17,10 @@ export default function Telegram({ chat, items, byId, onTap }) {
   const last = items[items.length - 1];
   const typing = last?.kind === 'typing' && last.from !== 'me';
   const shown = typing ? items.slice(0, -1) : items;
+  const X = tx(chat);
   const sub = typing
-    ? (chat.group ? `${senderOf(last, chat).name} sedang mengetik…` : 'sedang mengetik…')
-    : chat.group ? `${chat.participants.length + 1} anggota` : chat.contact.status || 'terakhir dilihat baru saja';
+    ? (chat.group ? X.isTypingL(senderOf(last, chat).name) : X.typingL)
+    : chat.group ? X.members(chat.participants.length + 1) : chat.contact.status || X.lastSeen;
   const fallback = dark
     ? { backgroundColor: '#0e1621', backgroundImage: pattern('rgba(255,255,255,.04)'), backgroundSize: '180px 180px' }
     : { backgroundImage: `${pattern('rgba(40,80,40,.10)')}, linear-gradient(160deg,#d7e6b5 0%,#a8cba0 45%,#c7dca8 100%)`, backgroundSize: '180px 180px, cover' };
@@ -27,7 +28,7 @@ export default function Telegram({ chat, items, byId, onTap }) {
   return (
     <div className={'shot tg ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="tg-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" />}
         <div className="tg-head-row">
           <ArrowLeft size={24} strokeWidth={2.2} />
           <Avatar contact={chat.contact} size={42} flat color="#5fa8d3" />
@@ -43,7 +44,7 @@ export default function Telegram({ chat, items, byId, onTap }) {
       <div className="msgs tg-msgs" style={wallpaperStyle(chat, fallback)}>
         {shown.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (it.kind !== 'msg') return it.kind === 'typing' ? null : <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (it.kind !== 'msg') return it.kind === 'typing' ? null : <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first, last: lst } = g[i];
           const big = bigEmoji(it);
@@ -51,8 +52,8 @@ export default function Telegram({ chat, items, byId, onTap }) {
           const groupThem = chat.group && side === 'them';
           const meta = (
             <>
-              {it.edited && <span>diedit </span>}
-              {it.time}
+              {it.edited && <span>{labels(chat).edited} </span>}
+              {fmtTime(it.time, chat)}
               {side === 'me' && <Ticks status={it.status === 'read' ? 'read' : 'sent'} color={check} />}
             </>
           );
@@ -77,7 +78,7 @@ export default function Telegram({ chat, items, byId, onTap }) {
       {chat.showInput !== false && (
         <div className="tg-input">
           <Smile size={24} strokeWidth={1.8} />
-          <span className="tg-ph"><Draft chat={chat} placeholder="Pesan" /></span>
+          <span className="tg-ph"><Draft chat={chat} placeholder={X.tgPh} /></span>
           <Paperclip size={22} strokeWidth={1.8} />
           <Mic size={23} strokeWidth={1.8} />
         </div>

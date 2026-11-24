@@ -1,5 +1,5 @@
 import { ArrowLeft, Phone, Video, Camera, Mic, Image, Sticker } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid , tx, labels } from './parts.jsx';
 
 const CLS = { time: 'ig-time', system: 'ig-time', unread: 'ig-unread' };
 
@@ -11,7 +11,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
   return (
     <div className={'shot ig ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="ig-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
         <div className="ig-head-row">
           <ArrowLeft size={26} strokeWidth={2} />
           <div className="ig-avwrap">
@@ -20,7 +20,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
           </div>
           <div className="ig-who">
             <div className="ig-name">{chat.contact.name || 'Unknown'}{chat.verified && <Verified size={14} color="#0095f6" />}</div>
-            <div className="ig-handle">{chat.group ? chat.participants.map(p => p.name).join(', ') : chat.contact.status === 'online' ? 'Active now' : handle}</div>
+            <div className="ig-handle">{chat.group ? chat.participants.map(p => p.name).join(', ') : chat.contact.status === 'online' ? tx(chat).activeNow : handle}</div>
           </div>
           <Phone size={23} strokeWidth={1.9} />
           <Video size={27} strokeWidth={1.7} />
@@ -30,7 +30,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
       <div className="msgs ig-msgs">
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first, last } = g[i];
           const big = it.kind === 'msg' && bigEmoji(it);
@@ -38,7 +38,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
           return (
             <div key={it.id} className={`ig-row ${side} ${first ? 'first' : ''} ${last ? 'last' : ''} ${it.reaction ? 'has-react' : ''}`} onClick={tap}>
               {chat.group && side === 'them' && first && <div className="ig-sender">{senderOf(it, chat).name}</div>}
-              {it.edited && <div className="ig-edited">Edited</div>}
+              {it.edited && <div className="ig-edited">{labels(chat).edited}</div>}
               <div className="ig-line">
                 {side === 'them' && <div className="ig-avslot">{last && <Avatar contact={senderOf(it, chat)} size={28} flat />}</div>}
                 <div className={`ig-b ${side} ${first ? 'first' : ''} ${last ? 'last' : ''} ${it.kind === 'typing' ? 'typing' : ''} k-${big ? 'emoji' : t}`} style={big ? { fontSize: 50 - big * 6 } : null}>
@@ -46,7 +46,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
                   <Reaction it={it} />
                 </div>
               </div>
-              {i === lastMeIdx && it.status === 'read' && <div className="ig-seen">Seen</div>}
+              {i === lastMeIdx && it.status === 'read' && <div className="ig-seen">{tx(chat).seen}</div>}
             </div>
           );
         })}
@@ -55,7 +55,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
         <div className="ig-input">
           <span className="ig-field">
             <span className="ig-cam"><Camera size={19} strokeWidth={2.2} /></span>
-            <span className="ig-ph"><Draft chat={chat} placeholder="Message..." /></span>
+            <span className="ig-ph"><Draft chat={chat} placeholder={tx(chat).igPh} /></span>
             <Mic size={22} strokeWidth={1.8} />
             <Image size={22} strokeWidth={1.8} />
             <Sticker size={22} strokeWidth={1.8} />

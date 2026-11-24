@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput, Languages, Send, BellRing, Play, Music, RotateCcw } from 'lucide-react';
+import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput, Languages, ArrowLeftRight, Zap, Send, BellRing, Play, Music, RotateCcw } from 'lucide-react';
 import { playChatSound, clearSoundCache } from '../chatSounds.js';
 import { putMedia, fileToRawDataUrl } from '../media.js';
 import { shareTextFile } from '../exporter.js';
@@ -91,6 +91,18 @@ export default function Settings() {
           </div>
         </div>
 
+        <div className="section-title">Editor</div>
+        <div className="card group">
+          <div className="row"><Ic c="#7c6cff"><ArrowLeftRight size={18} /></Ic><span className="lbl">Ganti pengirim otomatis<small>Setelah kirim, giliran Aku ↔ Dia berganti sendiri</small></span>
+            <Switch on={!!settings.autoSwitch} onChange={v => setSettings({ autoSwitch: v })} /></div>
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <Ic c="#ffc145"><Zap size={18} /></Ic>
+            <span className="lbl">Frasa cepat<small>Muncul di baris emoji editor, pisahkan dengan koma</small></span>
+            <input className="input" style={{ width: '100%' }} defaultValue={(settings.phrases || ['wkwk', 'otw', 'siap', 'hah?', 'oke', '??']).join(', ')}
+              onBlur={e => setSettings({ phrases: e.target.value.split(',').map(x => x.trim()).filter(Boolean).slice(0, 20) })} />
+          </div>
+        </div>
+
         <div className="section-title">Suara & getar</div>
         <div className="card group">
           <div className="row"><Ic c="#ffc145"><Volume2 size={19} /></Ic><span className="lbl">Efek suara</span>
@@ -124,7 +136,7 @@ export default function Settings() {
         <div className="section-title">Tentang</div>
         <div className="card group">
           <div className="row"><Ic c="#9aa0b4"><Info size={19} /></Ic>
-            <span className="lbl">ChatSim 1.6<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
+            <span className="lbl">ChatSim 2.0<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
         </div>
         <p className="note">ChatSim dibuat untuk cerita fiksi, video, komik, dan meme. Jangan dipakai untuk menipu, memfitnah, atau mengaku-ngaku chat asli orang lain. Template hanya meniru gaya tampilan dan tidak berafiliasi dengan aplikasi mana pun.</p>
       </div>

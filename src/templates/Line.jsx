@@ -1,5 +1,5 @@
 import { ChevronLeft, Search, Phone, Menu, Plus, Camera, Image, Smile, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard, sbAndroid, wallpaperStyle } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard, sbAndroid, wallpaperStyle , tx, labels , fmtTime } from './parts.jsx';
 
 const CLS = { time: 'ln-date', system: 'ln-date', unread: 'ln-date' };
 
@@ -9,7 +9,7 @@ export default function Line({ chat, items, byId, onTap }) {
   return (
     <div className={'shot ln ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="ln-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#111'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#111'} />}
         <div className="ln-head-row">
           <ChevronLeft size={30} strokeWidth={2} />
           <div className="ln-name">{chat.contact.name || 'Unknown'}{chat.group ? ` (${chat.participants.length + 1})` : ''}{chat.verified && <Verified size={15} color="#06c755" />}</div>
@@ -22,16 +22,16 @@ export default function Line({ chat, items, byId, onTap }) {
       <div className="msgs ln-msgs" style={wallpaperStyle(chat, null)}>
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first } = g[i];
           const big = it.kind === 'msg' && bigEmoji(it);
           const t = typeOf(it);
           const meta = it.kind === 'msg' && (
             <span className="ln-meta">
-              {side === 'me' && it.status === 'read' && <span>Read</span>}
-              {it.edited && <span>Edited</span>}
-              <span>{it.time}</span>
+              {side === 'me' && it.status === 'read' && <span>{tx(chat).read}</span>}
+              {it.edited && <span>{labels(chat).edited}</span>}
+              <span>{fmtTime(it.time, chat)}</span>
             </span>
           );
           return (

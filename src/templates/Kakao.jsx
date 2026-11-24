@@ -1,5 +1,5 @@
 import { ChevronLeft, Search, Menu, Plus, Smile, Hash } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard, sbAndroid, wallpaperStyle } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard, sbAndroid, wallpaperStyle , tx, labels , fmtTime } from './parts.jsx';
 
 const CLS = { time: 'kk-date', system: 'kk-date', unread: 'kk-date' };
 
@@ -9,7 +9,7 @@ export default function Kakao({ chat, items, byId, onTap }) {
   return (
     <div className={'shot kk ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1, ...wallpaperStyle(chat, {}) }}>
       <div className="kk-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
         <div className="kk-head-row">
           <ChevronLeft size={30} strokeWidth={2} />
           <div className="kk-name">{chat.contact.name || 'Unknown'}{chat.group && <small>{chat.participants.length + 1}</small>}{chat.verified && <Verified size={15} color="#3c1e1e" check="#fee500" />}</div>
@@ -21,7 +21,7 @@ export default function Kakao({ chat, items, byId, onTap }) {
       <div className="msgs kk-msgs">
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first, last } = g[i];
           const big = it.kind === 'msg' && bigEmoji(it);
@@ -29,8 +29,8 @@ export default function Kakao({ chat, items, byId, onTap }) {
           const meta = it.kind === 'msg' && last && (
             <span className="kk-meta">
               {side === 'me' && it.status !== 'read' && <b>1</b>}
-              {it.edited && <span>Edited</span>}
-              <span>{it.time}</span>
+              {it.edited && <span>{labels(chat).edited}</span>}
+              <span>{fmtTime(it.time, chat)}</span>
             </span>
           );
           return (

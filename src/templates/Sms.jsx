@@ -1,5 +1,5 @@
 import { ArrowLeft, Phone, Video, MoreVertical, PlusCircle, Smile, Image, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard , sbAndroid , tx, labels , fmtTime } from './parts.jsx';
 
 const CLS = { time: 'sm-time', system: 'sm-time', unread: 'sm-unread' };
 const ST = { sent: 'Terkirim', delivered: 'Terkirim', read: 'Dibaca' };
@@ -11,7 +11,7 @@ export default function Sms({ chat, items, byId, onTap }) {
   return (
     <div className={'shot sm ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="sm-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#e3e2e6' : '#1b1b1f'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#e3e2e6' : '#1b1b1f'} />}
         <div className="sm-head-row">
           <ArrowLeft size={24} strokeWidth={2} />
           <Avatar contact={chat.contact} size={38} flat />
@@ -28,7 +28,7 @@ export default function Sms({ chat, items, byId, onTap }) {
       <div className="msgs sm-msgs">
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const { first, last } = g[i];
           const big = it.kind === 'msg' && bigEmoji(it);
@@ -44,7 +44,7 @@ export default function Sms({ chat, items, byId, onTap }) {
                 </div>
               </div>
               {last && it.kind === 'msg' && (
-                <div className="sm-meta">{it.time}{it.edited ? ' · Diedit' : ''}{i === lastMeIdx && it.status ? ' · ' + ST[it.status] : ''}</div>
+                <div className="sm-meta">{fmtTime(it.time, chat)}{it.edited ? ' · ' + labels(chat).edited : ''}{i === lastMeIdx && it.status ? ' · ' + (it.status === 'read' ? tx(chat).read : tx(chat).sent) : ''}</div>
               )}
             </div>
           );
@@ -55,7 +55,7 @@ export default function Sms({ chat, items, byId, onTap }) {
           <PlusCircle size={26} strokeWidth={1.7} />
           <span className="sm-field">
             <Smile size={22} strokeWidth={1.8} />
-            <span className="sm-ph"><Draft chat={chat} placeholder="Pesan teks" /></span>
+            <span className="sm-ph"><Draft chat={chat} placeholder={tx(chat).smsPh} /></span>
             <Image size={22} strokeWidth={1.8} />
           </span>
           <span className="sm-mic"><Mic size={22} strokeWidth={2} /></span>

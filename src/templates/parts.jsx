@@ -1,21 +1,71 @@
 // Shared pieces for the phone-screen templates.
-import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Ban, Play, Mic, Pin, MapPin, MessageCircle, Delete, ArrowBigUp, CornerDownLeft } from 'lucide-react';
+import { Phone, Video, PhoneMissed, PhoneIncoming, PhoneOutgoing, Ban, Play, Mic, Pin, MessageCircle, Delete, ArrowBigUp, CornerDownLeft, Forward, Star, FileText } from 'lucide-react';
 import { mediaUrl } from '../media.js';
 
-export const LABELS = {
-  imessage: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice Call', video: 'FaceTime Video', missed: 'Missed Call', missedVideo: 'Missed FaceTime', unread: 'Unread Messages', photo: 'Photo', vn: 'Audio Message' },
-  whatsapp: { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Anda menghapus pesan ini', deletedThem: 'Pesan ini telah dihapus', edited: 'Diedit', you: 'Anda', voice: 'Panggilan suara', video: 'Panggilan video', missed: 'Panggilan suara tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: '1 PESAN BELUM DIBACA', photo: 'Foto', vn: 'Pesan suara' },
-  telegram: { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Pesan dihapus', deletedThem: 'Pesan dihapus', edited: 'diedit', you: 'Anda', voice: 'Panggilan keluar', video: 'Panggilan video', missed: 'Panggilan tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: 'Pesan belum dibaca', photo: 'Foto', vn: 'Pesan suara' },
-  instagram: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'Message unsent', edited: 'Edited', you: 'You', voice: 'Audio call', video: 'Video chat', missed: 'Missed audio call', missedVideo: 'Missed video chat', unread: 'Unread', photo: 'Photo', vn: 'Voice message' },
-  sms: { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Anda menghapus pesan ini', deletedThem: 'Pesan ini dihapus', edited: 'Diedit', you: 'Anda', voice: 'Panggilan suara', video: 'Panggilan video', missed: 'Panggilan tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: 'Pesan baru', photo: 'Foto', vn: 'Pesan suara' },
-  lock: { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Pesan dihapus', deletedThem: 'Pesan dihapus', edited: 'Diedit', you: 'Anda', voice: 'Panggilan suara', video: 'Panggilan video', missed: 'Panggilan tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: 'Baru', photo: 'Foto', vn: 'Pesan suara' },
-  line: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
-  messenger: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
-  snapchat: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
-  tinder: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
-  kakao: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
-  x: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You deleted this message', deletedThem: 'This message was deleted', edited: 'Edited', you: 'You', voice: 'Audio call', video: 'Video call', missed: 'Missed audio call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' }
+// ---- in-chat language (Indonesia / English) ----
+const EN_BASE = { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' };
+const ID_BASE = { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Anda menghapus pesan ini', deletedThem: 'Pesan ini telah dihapus', edited: 'Diedit', you: 'Anda', voice: 'Panggilan suara', video: 'Panggilan video', missed: 'Panggilan suara tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: 'Pesan belum dibaca', photo: 'Foto', vn: 'Pesan suara' };
+const EN_TPL = {
+  imessage: { voice: 'Voice Call', video: 'FaceTime Video', missed: 'Missed Call', missedVideo: 'Missed FaceTime', unread: 'Unread Messages', vn: 'Audio Message' },
+  whatsapp: { deleted: 'You deleted this message', deletedThem: 'This message was deleted', unread: '1 UNREAD MESSAGE' },
+  telegram: { deleted: 'Message deleted', deletedThem: 'Message deleted', edited: 'edited', voice: 'Outgoing call' },
+  instagram: { deletedThem: 'Message unsent', voice: 'Audio call', video: 'Video chat', missed: 'Missed audio call', missedVideo: 'Missed video chat', unread: 'Unread' },
+  x: { deleted: 'You deleted this message', deletedThem: 'This message was deleted', voice: 'Audio call', missed: 'Missed audio call' },
+  sms: { deleted: 'You deleted this message', deletedThem: 'This message was deleted', unread: 'New messages' },
+  lock: { deleted: 'Message deleted', deletedThem: 'Message deleted', unread: 'New' }
 };
+const ID_TPL = {
+  imessage: { deleted: 'Anda membatalkan pengiriman pesan', deletedThem: 'Pesan ini dibatalkan', voice: 'Panggilan Suara', video: 'Video FaceTime', missed: 'Panggilan Tak Terjawab', missedVideo: 'FaceTime Tak Terjawab', unread: 'Pesan Belum Dibaca', vn: 'Pesan Audio' },
+  whatsapp: { unread: '1 PESAN BELUM DIBACA' },
+  telegram: { deleted: 'Pesan dihapus', deletedThem: 'Pesan dihapus', edited: 'diedit', voice: 'Panggilan keluar', missed: 'Panggilan tak terjawab' },
+  instagram: { deleted: 'Anda membatalkan pengiriman pesan', deletedThem: 'Pesan dibatalkan', voice: 'Panggilan audio', video: 'Obrolan video', missed: 'Panggilan audio tak terjawab', missedVideo: 'Obrolan video tak terjawab', unread: 'Belum dibaca' },
+  sms: { deletedThem: 'Pesan ini dihapus', missed: 'Panggilan tak terjawab', unread: 'Pesan baru' },
+  lock: { deleted: 'Pesan dihapus', deletedThem: 'Pesan dihapus', missed: 'Panggilan tak terjawab', unread: 'Baru' }
+};
+export const chatLang = chat => (typeof chat === 'object' && chat?._lang) || 'id';
+export function labels(chatOrTpl) {
+  const tpl = typeof chatOrTpl === 'string' ? chatOrTpl : chatOrTpl?.template;
+  const en = chatLang(chatOrTpl) === 'en';
+  return { ...(en ? EN_BASE : ID_BASE), ...((en ? EN_TPL : ID_TPL)[tpl] || {}) };
+}
+// Kept for callers that only know the template (defaults to Indonesian).
+export const LABELS = new Proxy({}, { get: (_, k) => labels(String(k)) });
+
+const TX = {
+  id: { read: 'Dibaca', delivered: 'Terkirim', sent: 'Terkirim', seen: 'Dilihat', typing: 'mengetik...', typingL: 'sedang mengetik…', isTyping: n => `${n} mengetik...`, isTypingL: n => `${n} sedang mengetik…`,
+    members: n => `${n} anggota`, people: n => `${n} orang`, lastSeen: 'terakhir dilihat baru saja', activeNow: 'Aktif sekarang', opened: 'Dibuka', meLabel: 'SAYA',
+    waPh: 'Ketik pesan', tgPh: 'Pesan', smsPh: 'Pesan teks', igPh: 'Kirim pesan...', xPh: 'Mulai pesan', snapPh: 'Kirim obrolan', tinderPh: 'Ketik pesan', sendBtn: 'KIRIM',
+    pinned: 'Pesan disematkan', now: 'sekarang', minAgo: d => `${d} mnt lalu`, noNotif: 'Tidak ada notifikasi', newMsg: 'Pesan baru', myLoc: 'Lokasi saya', tapMap: 'Ketuk untuk membuka peta',
+    forwarded: 'Diteruskan', viewOnce: 'Foto · Sekali lihat', onceOpened: 'Dibuka', pollHint: 'Pilih satu atau lebih', votes: 'suara', viewVotes: 'Lihat suara', video: 'Video', file: 'Dokumen', pages: 'hlm',
+    msgBtn: 'Kirim pesan', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak', kbSpace: 'spasi', kbSpaceA: 'Indonesia', kbSugg: ['aku', 'iya', 'oke'], appName: 'Pesan',
+    days: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'], months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] },
+  en: { read: 'Read', delivered: 'Delivered', sent: 'Sent', seen: 'Seen', typing: 'typing...', typingL: 'typing…', isTyping: n => `${n} is typing...`, isTypingL: n => `${n} is typing…`,
+    members: n => `${n} members`, people: n => `${n} people`, lastSeen: 'last seen recently', activeNow: 'Active now', opened: 'Opened', meLabel: 'ME',
+    waPh: 'Message', tgPh: 'Message', smsPh: 'Text message', igPh: 'Message...', xPh: 'Start a message', snapPh: 'Send a chat', tinderPh: 'Type a message', sendBtn: 'SEND',
+    pinned: 'Pinned message', now: 'now', minAgo: d => `${d}m ago`, noNotif: 'No notifications', newMsg: 'New message', myLoc: 'My location', tapMap: 'Tap to open the map',
+    forwarded: 'Forwarded', viewOnce: 'Photo · View once', onceOpened: 'Opened', pollHint: 'Select one or more', votes: 'votes', viewVotes: 'View votes', video: 'Video', file: 'Document', pages: 'pages',
+    msgBtn: 'Message', sticker: 'Sticker', location: 'Location', contact: 'Contact', kbSpace: 'space', kbSpaceA: 'English', kbSugg: ['I', 'the', 'okay'], appName: 'Messages',
+    days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] }
+};
+export const tx = chat => TX[chatLang(chat)] || TX.id;
+
+// Built-in divider texts ("Today", "HARI INI", "Today 7:32 PM"…) follow the chat language.
+const TODAY_RX = /^(today|hari ini)(\s+(\d{1,2})[:.](\d{2})(\s*[ap]m)?)?$/i;
+export function dividerText(text, chat) {
+  const m = (text || '').trim().match(TODAY_RX);
+  if (!m) return text;
+  const en = chatLang(chat) === 'en';
+  const upper = text.trim() === text.trim().toUpperCase();
+  let word = en ? 'Today' : (chat.template === 'imessage' ? 'Hari Ini' : 'Hari ini');
+  let time = '';
+  if (m[2]) {
+    let h = +m[3]; const mm = m[4];
+    if (m[5]) { const pm = /p/i.test(m[5]); h = (h % 12) + (pm ? 12 : 0); }
+    time = en ? ' ' + to12(`${h}:${mm}`) : ` ${String(h).padStart(2, '0')}.${mm}`;
+  }
+  const out = word + time;
+  return upper ? out.toUpperCase() : out;
+}
 
 export const typeOf = m => m.type || 'text';
 const RUN_KINDS = new Set(['msg', 'typing']);
@@ -56,7 +106,7 @@ export function avatarColor(name = '') {
 export function Avatar({ contact, size, flat, color, personIcon }) {
   const st = { width: size, height: size, minWidth: size };
   if (contact?.avatar) return <div className="t-av" style={st}><img src={mediaUrl(contact.avatar)} alt="" /></div>;
-  if (personIcon) {
+  if (personIcon && !contact?.emoji) {
     return (
       <div className="t-av" style={{ ...st, background: personIcon.bg }}>
         <svg viewBox="0 0 40 40" width={size} height={size}>
@@ -67,6 +117,7 @@ export function Avatar({ contact, size, flat, color, personIcon }) {
     );
   }
   const bg = flat ? (color || contact?.color || avatarColor(contact?.name)) : 'linear-gradient(180deg,#a5a5ab,#858589)';
+  if (contact?.emoji) return <div className="t-av" style={{ ...st, background: flat || personIcon ? (contact.color || avatarColor(contact.name)) : bg, fontSize: size * 0.56 }}>{contact.emoji}</div>;
   const txt = initials(contact?.name);
   return <div className="t-av" style={{ ...st, background: bg, fontSize: size * (txt.length > 2 ? 0.34 : 0.42) }}>{txt}</div>;
 }
@@ -82,20 +133,32 @@ export function Verified({ color = '#1d9bf0', size = 16, check = '#fff' }) {
 
 export const sbAndroid = (chat, def) => (chat.sbStyle === 'ios' ? false : chat.sbStyle === 'android' ? true : def);
 
-export function StatusBar({ time, battery = 76, color = '#fff', android = false, charging = false }) {
+export function StatusBar({ time, battery = 76, color = '#fff', android = false, charging = false, cfg = {} }) {
   const lvl = Math.max(4, Math.min(100, battery));
+  const bars = cfg.signal ?? 4;
+  const air = !!cfg.airplane;
+  time = fmtTime(time, cfg);
   return (
     <div className={'t-sb' + (android ? ' android' : '')} style={{ color }}>
       <span className="t-sb-time">{time}</span>
       <span className="t-sb-icons">
-        <svg width="18" height="12" viewBox="0 0 18 12">
-          {[0, 1, 2, 3].map(i => <rect key={i} x={i * 4.6} y={9 - i * 2.8} width="3.2" height={3 + i * 2.8} rx="0.9" fill="currentColor" />)}
-        </svg>
-        <svg width="16" height="12" viewBox="0 0 16 12">
-          <path d="M8 11.4 5.6 8.9a3.4 3.4 0 0 1 4.8 0z" fill="currentColor" />
-          <path d="M3.6 6.9a6.3 6.3 0 0 1 8.8 0l-1.3 1.3a4.5 4.5 0 0 0-6.2 0z" fill="currentColor" />
-          <path d="M1.4 4.7a9.4 9.4 0 0 1 13.2 0l-1.3 1.3a7.6 7.6 0 0 0-10.6 0z" fill="currentColor" />
-        </svg>
+        {air ? (
+          <svg width="16" height="14" viewBox="0 0 24 24"><path fill="currentColor" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" /></svg>
+        ) : (
+          <>
+            {cfg.network && <span className="t-sb-net">{cfg.network}</span>}
+            <svg width="18" height="12" viewBox="0 0 18 12">
+              {[0, 1, 2, 3].map(i => <rect key={i} x={i * 4.6} y={9 - i * 2.8} width="3.2" height={3 + i * 2.8} rx="0.9" fill="currentColor" opacity={i < bars ? 1 : 0.28} />)}
+            </svg>
+          </>
+        )}
+        {cfg.wifi !== false && !air && (
+          <svg width="16" height="12" viewBox="0 0 16 12">
+            <path d="M8 11.4 5.6 8.9a3.4 3.4 0 0 1 4.8 0z" fill="currentColor" />
+            <path d="M3.6 6.9a6.3 6.3 0 0 1 8.8 0l-1.3 1.3a4.5 4.5 0 0 0-6.2 0z" fill="currentColor" />
+            <path d="M1.4 4.7a9.4 9.4 0 0 1 13.2 0l-1.3 1.3a7.6 7.6 0 0 0-10.6 0z" fill="currentColor" />
+          </svg>
+        )}
         {android && <span className="t-sb-pct">{battery}%</span>}
         <span className="t-bat">
           <span className="t-bat-body">
@@ -145,28 +208,32 @@ function Wave({ id, n = 30 }) {
 }
 
 export function senderOf(m, chat) {
-  if (m.from === 'me') return { name: LABELS[chat.template]?.you || 'You' };
+  if (m.from === 'me') return { name: labels(chat).you };
   if (chat.group) return chat.participants.find(p => p.id === m.sender) || chat.participants[0] || { name: chat.contact.name };
   return chat.contact;
 }
 
-export function quoteText(m, tpl) {
-  const L = LABELS[tpl] || LABELS.imessage;
+export function quoteText(m, chat) {
+  const L = labels(chat);
+  const X = tx(chat);
   const t = typeOf(m);
   if (t === 'image') return (m.text ? '📷 ' + m.text : '📷 ' + L.photo);
   if (t === 'voice') return '🎤 ' + L.vn + (m.duration ? ` (${m.duration})` : '');
   if (t === 'call') return L.voice;
   if (t === 'deleted') return L.deletedThem;
-  if (t === 'sticker') return '🖼️ Stiker';
-  if (t === 'location') return '📍 ' + (m.place || 'Lokasi');
-  if (t === 'contact') return '👤 ' + (m.cname || 'Kontak');
+  if (t === 'sticker') return '🖼️ ' + X.sticker;
+  if (t === 'location') return '📍 ' + (m.place || X.location);
+  if (t === 'contact') return '👤 ' + (m.cname || X.contact);
+  if (t === 'viewonce') return '①  ' + X.viewOnce;
+  if (t === 'poll') return '📊 ' + (m.text || 'Poll');
+  if (t === 'file') return '📄 ' + (m.fname || X.file);
+  if (t === 'videomsg') return '🎥 ' + (m.text || X.video);
   return m.text;
 }
 
 // Everything that goes inside a bubble (sender name, quote, photo, voice note, call, text).
 export function Content({ it, chat, byId, showName }) {
-  const tpl = chat.template;
-  const L = LABELS[tpl] || LABELS.imessage;
+  const L = labels(chat);
   const t = typeOf(it);
   const q = it.replyTo ? byId[it.replyTo] : null;
   const snd = senderOf(it, chat);
@@ -175,10 +242,11 @@ export function Content({ it, chat, byId, showName }) {
   return (
     <>
       {showName && <div className="c-name" style={{ color: snd.color }}>{snd.name}</div>}
+      {it.forwarded && <div className="c-fwd"><Forward size={13} /> {tx(chat).forwarded}</div>}
       {q && (
         <div className="c-quote" style={{ '--qc': q.from === 'me' ? 'var(--q-me)' : qs.color || 'var(--q-them)' }}>
           <b>{q.from === 'me' ? L.you : qs.name}</b>
-          <span>{quoteText(q, tpl)}</span>
+          <span>{quoteText(q, chat)}</span>
         </div>
       )}
       {t === 'image' && it.image && <img className="c-img" src={mediaUrl(it.image)} alt="" />}
@@ -187,16 +255,29 @@ export function Content({ it, chat, byId, showName }) {
           <span className="c-play"><Play size={16} fill="currentColor" strokeWidth={0} /></span>
           <Wave id={it.id} />
           <span className="c-dur">{it.duration || '0:12'}</span>
-          {tpl === 'whatsapp' && <span className="c-vav"><Mic size={13} /></span>}
+          {chat.template === 'whatsapp' && <span className="c-vav"><Mic size={13} /></span>}
         </span>
       )}
       {t === 'call' && <CallRow it={it} L={L} />}
       {t === 'deleted' && <span className="c-del"><Ban size={15} /> {it.from === 'me' ? L.deleted : L.deletedThem}</span>}
       {t === 'sticker' && it.image && <img className="c-sticker" src={mediaUrl(it.image)} alt="" />}
-      {t === 'location' && <LocationCard it={it} />}
-      {t === 'contact' && <ContactCard it={it} />}
+      {t === 'location' && <LocationCard it={it} X={tx(chat)} />}
+      {t === 'contact' && <ContactCard it={it} X={tx(chat)} />}
       {t === 'text' && link && <LinkCard url={link} title={it.linkTitle} />}
-      {(t === 'text' || (t === 'image' && it.text)) && <span className="c-text">{link ? linkify(it.text) : it.text}</span>}
+      {t === 'videomsg' && (
+        <span className="c-vid">
+          {it.image ? <img className="c-img" src={mediaUrl(it.image)} alt="" /> : <span className="c-img c-vid-ph" />}
+          <span className="c-vid-play"><Play size={24} fill="#fff" strokeWidth={0} /></span>
+          <span className="c-vid-dur"><Video size={12} /> {it.duration || '0:15'}</span>
+        </span>
+      )}
+      {t === 'viewonce' && (
+        <span className="c-once"><span className={'c-once-ic' + (it.onceOpened ? ' done' : '')}>1</span>{it.onceOpened ? tx(chat).onceOpened : tx(chat).viewOnce}</span>
+      )}
+      {t === 'file' && <FileCard it={it} X={tx(chat)} />}
+      {t === 'poll' && <PollCard it={it} X={tx(chat)} />}
+      {(t === 'text' || ((t === 'image' || t === 'videomsg') && it.text)) && <span className="c-text">{rich(it.text, chat, link)}</span>}
+      {it.starred && <span className="c-star"><Star size={11} fill="currentColor" strokeWidth={0} /></span>}
     </>
   );
 }
@@ -221,10 +302,13 @@ export function Reaction({ it }) {
 }
 
 // Rows that are not bubbles.
-export function NonBubble({ it, onTap, cls }) {
-  if (it.kind === 'unread') return <div className={cls.unread} onClick={onTap}><span>{it.text}</span></div>;
+export function NonBubble({ it, onTap, cls, chat }) {
+  if (it.kind === 'unread') {
+    const auto = [...Object.values(ID_TPL), ...Object.values(EN_TPL), ID_BASE, EN_BASE].some(v => v.unread === it.text);
+    return <div className={cls.unread} onClick={onTap}><span>{auto && chat ? labels(chat).unread : it.text}</span></div>;
+  }
   if (it.kind === 'system') return <div className={cls.system} onClick={onTap}><span>{it.text}</span></div>;
-  return <div className={cls.time} onClick={onTap}><span>{it.text}</span></div>;
+  return <div className={cls.time} onClick={onTap}><span>{chat ? dividerText(it.text, chat) : it.text}</span></div>;
 }
 
 export function wallpaperStyle(chat, fallback) {
@@ -252,7 +336,7 @@ function LinkCard({ url, title }) {
     </span>
   );
 }
-function LocationCard({ it }) {
+function LocationCard({ it, X }) {
   return (
     <span className="c-loc">
       <svg className="c-map" viewBox="0 0 260 130" preserveAspectRatio="xMidYMid slice">
@@ -263,18 +347,18 @@ function LocationCard({ it }) {
         <path d="M130 30c-12 0-21 9-21 21 0 16 21 37 21 37s21-21 21-37c0-12-9-21-21-21z" fill="#ea4335" stroke="#fff" strokeWidth="3" />
         <circle cx="130" cy="51" r="7" fill="#fff" />
       </svg>
-      <span className="c-loctx"><b>{it.place || 'Lokasi saya'}</b><small>{it.address || 'Ketuk untuk membuka peta'}</small></span>
+      <span className="c-loctx"><b>{it.place || X.myLoc}</b><small>{it.address || X.tapMap}</small></span>
     </span>
   );
 }
-function ContactCard({ it }) {
+function ContactCard({ it, X }) {
   return (
     <span className="c-contact">
       <span className="c-contact-top">
         <span className="t-av" style={{ width: 40, height: 40, background: avatarColor(it.cname || ''), fontSize: 16 }}>{initials(it.cname || '?')}</span>
-        <span><b>{it.cname || 'Kontak'}</b><small>{it.phone || '+62 812-3456-7890'}</small></span>
+        <span><b>{it.cname || X.contact}</b><small>{it.phone || '+62 812-3456-7890'}</small></span>
       </span>
-      <span className="c-contact-btn">Kirim pesan</span>
+      <span className="c-contact-btn">{X.msgBtn}</span>
     </span>
   );
 }
@@ -284,7 +368,7 @@ export function PinBar({ chat }) {
   return (
     <div className="pinbar">
       <span className="pin-line" />
-      <span className="pin-tx"><b>Pesan disematkan</b><span>{chat.pinnedText}</span></span>
+      <span className="pin-tx"><b>{tx(chat).pinned}</b><span>{chat.pinnedText}</span></span>
       <Pin size={17} />
     </div>
   );
@@ -297,9 +381,10 @@ export function Draft({ chat, placeholder }) {
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 export function Keyboard({ chat, android }) {
   if (!chat.keyboard) return null;
+  const X = tx(chat);
   return (
     <div className={'kb ' + (chat.dark ? 'dark' : 'light') + (android ? ' android' : '')}>
-      {android && <div className="kb-sugg"><span>aku</span><span>iya</span><span>oke</span></div>}
+      {android && <div className="kb-sugg">{X.kbSugg.map(w => <span key={w}>{w}</span>)}</div>}
       {ROWS.map((r, i) => (
         <div className="kb-row" key={r}>
           {i === 2 && <span className="kb-k fn"><ArrowBigUp size={20} /></span>}
@@ -310,7 +395,7 @@ export function Keyboard({ chat, android }) {
       <div className="kb-row">
         <span className="kb-k fn wide">{android ? '?123' : '123'}</span>
         {android && <span className="kb-k fn">,</span>}
-        <span className="kb-k space">{android ? 'Indonesia' : 'spasi'}</span>
+        <span className="kb-k space">{android ? X.kbSpaceA : X.kbSpace}</span>
         {android && <span className="kb-k fn">.</span>}
         <span className="kb-k fn wide"><CornerDownLeft size={18} /></span>
       </div>
@@ -325,15 +410,76 @@ export function NotifBanner({ chat }) {
   if (!n?.on) return null;
   const lastThem = [...chat.messages].reverse().find(m => m.kind === 'msg' && m.from !== 'me');
   const from = n.from || (chat.group ? chat.contact.name : chat.contact.name) || 'Unknown';
-  const text = n.text || (lastThem ? quoteText(lastThem, chat.template) : 'Pesan baru');
+  const text = n.text || (lastThem ? quoteText(lastThem, chat) : tx(chat).newMsg);
   return (
     <div className={'notif ' + (chat.dark ? 'dark' : 'light')}>
       <span className="notif-ic" style={{ background: n.color || '#34c759' }}><MessageCircle size={20} fill="#fff" strokeWidth={0} /></span>
       <span className="notif-tx">
-        <span className="notif-top"><b>{from}</b><small>{n.when || 'sekarang'}</small></span>
+        <span className="notif-top"><b>{from}</b><small>{!n.when || n.when === 'sekarang' || n.when === 'now' ? tx(chat).now : n.when}</small></span>
         <span className="notif-msg">{text}</span>
       </span>
       {chat.contact.avatar && <img className="notif-av" src={mediaUrl(chat.contact.avatar)} alt="" />}
     </div>
   );
+}
+
+// *bold* _italic_ ~strike~ `mono` and @mentions (WhatsApp-style), plus links.
+const FMT_RX = /(\*[^*\n]+\*|_[^_\n]+_|~[^~\n]+~|`[^`\n]+`|@[\p{L}\p{N}_.]+)/u;
+function fmt(str, key) {
+  return str.split(new RegExp(FMT_RX.source, 'gu')).map((p, i) => {
+    if (!p) return null;
+    const k = key + '-' + i;
+    if (/^\*[^*]+\*$/.test(p)) return <b key={k}>{p.slice(1, -1)}</b>;
+    if (/^_[^_]+_$/.test(p)) return <i key={k}>{p.slice(1, -1)}</i>;
+    if (/^~[^~]+~$/.test(p)) return <s key={k}>{p.slice(1, -1)}</s>;
+    if (/^`[^`]+`$/.test(p)) return <code key={k} className="c-mono">{p.slice(1, -1)}</code>;
+    if (/^@/.test(p)) return <span key={k} className="c-mention">{p}</span>;
+    return p;
+  });
+}
+function rich(text = '', chat, link) {
+  const parts = link ? text.split(/(https?:\/\/[^\s]+|www\.[^\s]+\.[a-z]{2,}[^\s]*)/i) : [text];
+  if (chat.richText === false) return link ? linkify(text) : text;
+  return parts.map((p, i) => (i % 2 ? <span key={i} className="c-link">{p}</span> : fmt(p, i)));
+}
+
+function FileCard({ it, X }) {
+  const ext = ((it.fname || 'dokumen.pdf').split('.').pop() || 'pdf').toUpperCase().slice(0, 4);
+  const col = { PDF: '#e5484d', DOC: '#2b7cd3', DOCX: '#2b7cd3', XLS: '#1f9d55', XLSX: '#1f9d55', PPT: '#e8743b', PPTX: '#e8743b', ZIP: '#8e6cd8', APK: '#3ddc84' }[ext] || '#7c8591';
+  return (
+    <span className="c-file">
+      <span className="c-file-ic" style={{ background: col }}><FileText size={18} /><b>{ext}</b></span>
+      <span className="c-file-tx"><b>{it.fname || 'dokumen.pdf'}</b><small>{(it.fpages ? `${it.fpages} ${X.pages} · ` : '') + (it.fsize || '1,2 MB') + ' · ' + ext}</small></span>
+    </span>
+  );
+}
+function PollCard({ it, X }) {
+  const opts = (it.poll && it.poll.length ? it.poll : [{ t: 'Ya', v: 3 }, { t: 'Tidak', v: 1 }]);
+  const max = Math.max(1, ...opts.map(o => +o.v || 0));
+  const total = opts.reduce((a, o) => a + (+o.v || 0), 0);
+  return (
+    <span className="c-poll">
+      <b className="c-poll-q">{it.text || 'Polling'}</b>
+      <small className="c-poll-hint">{X.pollHint}</small>
+      {opts.map((o, i) => (
+        <span key={i} className="c-poll-opt">
+          <span className={'c-poll-ck' + (o.mine ? ' on' : '')} />
+          <span className="c-poll-main">
+            <span className="c-poll-row"><span>{o.t}</span><span>{+o.v || 0}</span></span>
+            <span className="c-poll-bar"><i style={{ width: `${((+o.v || 0) / max) * 100}%` }} /></span>
+          </span>
+        </span>
+      ))}
+      <span className="c-poll-foot">{X.viewVotes} · {total} {X.votes}</span>
+    </span>
+  );
+}
+
+// Message/clock time in the chat's format (auto = template habit, '12' or '24').
+export function fmtTime(t, chat) {
+  if (!t || !chat) return t;
+  const f = chat.timeFmt || 'auto';
+  if (f === '12') return to12(t).replace(/ (AM|PM)$/, chat._lang === 'en' ? ' $1' : ' $1');
+  if (f === '24') return t;
+  return t;
 }

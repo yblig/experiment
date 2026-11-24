@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MoreVertical, Clock, Copy, Trash2, Sparkles, Plus, Search, Pin, PinOff, X } from 'lucide-react';
+import { MoreVertical, Clock, Copy, Trash2, Sparkles, Plus, Search, Pin, PinOff, X, Tag, Share2, ArrowDownUp } from 'lucide-react';
+import { shareTextFile } from '../exporter.js';
 import { useStore, TEMPLATES } from '../store.js';
 import { BrandMark, Mini, Sheet, toast, useNow } from '../components/ui.jsx';
 import Shot from '../templates/Shot.jsx';
@@ -48,13 +49,24 @@ function EmptyArt() {
 
 export default function Home({ onOpen, onNew, goPresets }) {
   useNow();
-  const { chats, deleteChat, duplicateChat, restoreChat, togglePin } = useStore();
+  const { chats, deleteChat, duplicateChat, restoreChat, togglePin, setLabel, exportAll, settings, setSettings } = useStore();
+  const [filter, setFilter] = useState('');
+  const [labelDraft, setLabelDraft] = useState('');
   const [menu, setMenu] = useState(null);
   const [q, setQ] = useState('');
   const needle = q.trim().toLowerCase();
   const list = chats
     .filter(c => !needle || [c.title, c.contact.name, ...c.messages.map(m => m.text || '')].join('\n').toLowerCase().includes(needle))
-    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    .filter(c => !filter || (filter === '__pin' ? c.pinned : c.label === filter))
+    .sort((a, b) => {
+      const p = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+      if (p) return p;
+      const m = settings.homeSort || 'new';
+      if (m === 'title') return a.title.localeCompare(b.title);
+      if (m === 'tpl') return a.template.localeCompare(b.template) || b.updatedAt - a.updatedAt;
+      return b.updatedAt - a.updatedAt;
+    });
+  const labelsUsed = [...new Set(chats.map(c => c.label).filter(Boolean))];
 
   const del = c => {
     fx.del();
@@ -92,6 +104,14 @@ export default function Home({ onOpen, onNew, goPresets }) {
               <input value={q} onChange={e => setQ(e.target.value)} placeholder="Cari judul, nama, atau isi chat" />
               {q && <button onClick={() => { fx.tap(); setQ(''); }} aria-label="Hapus pencarian"><X size={18} /></button>}
             </label>
+            <div className="chips" style={{ padding: '10px 0 0' }}>
+              <button className={'chip press' + (!filter ? ' on' : '')} style={{ '--c': '#7c6cff' }} onClick={() => { fx.tap(); setFilter(''); }}>Semua</button>
+              {chats.some(c => c.pinned) && <button className={'chip press' + (filter === '__pin' ? ' on' : '')} style={{ '--c': '#ffc145' }} onClick={() => { fx.tap(); setFilter('__pin'); }}><Pin size={13} /> Disematkan</button>}
+              {labelsUsed.map(l => <button key={l} className={'chip press' + (filter === l ? ' on' : '')} style={{ '--c': '#2fd6a3' }} onClick={() => { fx.tap(); setFilter(l); }}><Tag size={13} /> {l}</button>)}
+              <button className="chip press" style={{ marginLeft: 'auto' }} onClick={() => { fx.toggle(); setSettings({ homeSort: { new: 'title', title: 'tpl', tpl: 'new' }[settings.homeSort || 'new'] }); }}>
+                <ArrowDownUp size={13} /> {{ new: 'Terbaru', title: 'Judul A-Z', tpl: 'Aplikasi' }[settings.homeSort || 'new']}
+              </button>
+            </div>
             <div className="section-title">{needle ? 'Hasil pencarian' : 'Chat kamu'} <small>{`${list.length} chat`}</small></div>
             {needle && !list.length && <p className="note" style={{ textAlign: 'center', padding: 20 }}>Nggak ada chat yang cocok dengan "{q}".</p>}
             {list.map((c, i) => {
@@ -102,12 +122,13 @@ export default function Home({ onOpen, onNew, goPresets }) {
                     <div className="thumb"><Mini width={74}><Shot chat={{ ...c, showInput: false }} /></Mini></div>
                     <div className="info">
                       <span className="badge" style={{ background: t.color + '22', color: t.color }}><i style={{ background: t.color }} />{t.label}{c.group ? ' · Grup' : ''}</span>
+                      {c.label && <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--sub)', marginLeft: 6 }}><Tag size={10} /> {c.label}</span>}
                       {c.pinned && <Pin size={14} className="pin-ic" style={{ marginLeft: 6, verticalAlign: -2 }} />}
                       <h3>{c.title}</h3>
                       <p>{lastLine(c)}</p>
                       <div className="when"><Clock size={12} /> <span>{ago(c.updatedAt)}</span><span>{' · '}</span><span>{`${c.messages.filter(m => m.kind === 'msg').length} pesan`}</span></div>
                     </div>
-                    <button className="more-btn press" onClick={e => { e.stopPropagation(); fx.tap(); setMenu(c); }} aria-label="Menu"><MoreVertical size={20} /></button>
+                    <button className="more-btn press" onClick={e => { e.stopPropagation(); fx.tap(); setLabelDraft(c.label || ''); setMenu(c); }} aria-label="Menu"><MoreVertical size={20} /></button>
                   </div>
                 </motion.div>
               );
@@ -116,6 +137,17 @@ export default function Home({ onOpen, onNew, goPresets }) {
         )}
       </div>
       <Sheet open={!!menu} onClose={() => setMenu(null)} title={menu?.title}>
+        <div className="field">
+          <label>Label / folder</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input className="input" placeholder="mis. Horor, Konten TikTok" value={labelDraft} onChange={e => setLabelDraft(e.target.value.slice(0, 20))} />
+            <button className="btn primary press" style={{ height: 48 }} onClick={() => { fx.success(); setLabel(menu.id, labelDraft.trim()); setMenu(null); toast(labelDraft.trim() ? `Label: ${labelDraft.trim()}` : 'Label dihapus'); }}>OK</button>
+          </div>
+          {labelsUsed.length > 0 && <div className="mini-row" style={{ marginTop: 8 }}>{labelsUsed.map(l => <button key={l} className="chip press" onClick={() => setLabelDraft(l)}><Tag size={12} /> {l}</button>)}</div>}
+        </div>
+        <button className="menu-item press" onClick={async () => { fx.tap(); const c = menu; setMenu(null); try { await shareTextFile(`${(c.title || 'chat').replace(/[^\p{L}\p{N}]+/gu, '-')}.chatsim.json`, await exportAll([c.id])); } catch (e) { toast('Gagal: ' + (e?.message || e)); } }}>
+          <Share2 size={20} /> Bagikan file chat (bisa diimpor di HP lain)
+        </button>
         <button className="menu-item press" onClick={() => { fx.toggle(); togglePin(menu.id); setMenu(null); toast(menu.pinned ? 'Sematan dilepas' : 'Chat disematkan di atas'); }}>
           {menu?.pinned ? <PinOff size={20} /> : <Pin size={20} />} {menu?.pinned ? 'Lepas sematan' : 'Sematkan di atas'}
         </button>

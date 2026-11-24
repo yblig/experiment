@@ -3,9 +3,9 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { buildFrames } from './screens/Player.jsx';
 import { FRAME_BGS } from './exporter.js';
-import { leadIn } from './chatSounds.js';
+import { leadIn, loadBytes } from './chatSounds.js';
 
-export const W = 1080, H = 1920, FPS = 30;
+export let W = 1080, H = 1920, FPS = 30;
 export const videoSupported = () => typeof window !== 'undefined' && 'VideoEncoder' in window && 'VideoFrame' in window;
 
 async function pickVideoCodec() {
@@ -24,12 +24,22 @@ async function pickAudio() {
   return null;
 }
 
-async function mixAudio(events, seconds, sr) {
+async function mixAudio(events, seconds, sr, bgm) {
   const ctx = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
+  if (bgm) {
+    try {
+      const mb = await ctx.decodeAudioData(await loadBytes(bgm.src));
+      const src = ctx.createBufferSource(); src.buffer = mb; src.loop = true;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, 0); g.gain.linearRampToValueAtTime(bgm.vol, 0.6);
+      g.gain.setValueAtTime(bgm.vol, Math.max(0.7, seconds - 1.6)); g.gain.linearRampToValueAtTime(0, seconds);
+      src.connect(g).connect(ctx.destination); src.start(0);
+    } catch (e) { console.warn('music', e); }
+  }
   const names = [...new Set(events.map(e => e.name))];
   const bufs = {};
   for (const n of names) {
-    try { bufs[n] = await ctx.decodeAudioData(await (await fetch(n)).arrayBuffer()); } catch { /* skip */ }
+    try { bufs[n] = await ctx.decodeAudioData(await loadBytes(n)); } catch (e) { console.warn('sound', n, e); }
   }
   for (const e of events) {
     if (!bufs[e.name]) continue;
@@ -46,8 +56,10 @@ const toBitmap = async url => createImageBitmap(await (await fetch(url)).blob())
 const ease = t => 1 - Math.pow(1 - t, 3);
 
 // renderScene(viewChat, phase|null) -> PNG data URL of the phone screen (1080 px wide)
-export async function exportVideo({ chat, renderScene, onProgress = () => {}, speed = 1, sound = true, bgIdx = 0, sounds = {} }) {
+export async function exportVideo({ chat, renderScene, onProgress = () => {}, speed = 1, sound = true, bgIdx = 0, sounds = {}, music = 'none', musicVol = 0.45, keys = true, title = '', titleStyle = 'box', quality = '1080', fps = 30 }) {
   if (!videoSupported()) throw new Error('HP ini belum mendukung pembuatan video');
+  [W, H] = quality === '720' ? [720, 1280] : [1080, 1920];
+  FPS = fps === 60 ? 60 : 30;
   const codec = await pickVideoCodec();
   if (!codec) throw new Error('Encoder H.264 tidak tersedia di HP ini');
   const ac = sound ? await pickAudio() : null;
@@ -59,7 +71,12 @@ export async function exportVideo({ chat, renderScene, onProgress = () => {}, sp
   scenes[scenes.length - 1].ms += 1800;
   let t = 0;
   const events = [];
-  scenes.forEach(s => { s.start = t; if (s.sound) events.push({ t: t / 1000, name: sounds[s.sound] || `audio/${s.sound}.wav`, vol: 0.9 }); t += s.ms; });
+  scenes.forEach((s, i) => {
+    s.start = t;
+    if (s.sound) events.push({ t: t / 1000, name: sounds[s.sound] || `audio/${s.sound}.wav`, vol: 0.9 });
+    if (keys && scenes[i + 1]?.keys) events.push({ t: Math.max(0, (t + s.ms - 750) / 1000), name: 'audio/chat/keys.wav', vol: 0.7 });
+    t += s.ms;
+  });
   const total = t;
 
   const target = new ArrayBufferTarget();
@@ -70,10 +87,10 @@ export async function exportVideo({ chat, renderScene, onProgress = () => {}, sp
   });
 
   // ---- audio ----
-  if (withAudio && events.length) {
+  if (withAudio && (events.length || music !== 'none')) {
     onProgress('Menyiapkan suara…', 0.02);
     const sr = ac.sr;
-    const buf = await mixAudio(events, total / 1000 + 0.3, sr);
+    const buf = await mixAudio(events, total / 1000 + 0.3, sr, music !== 'none' ? { src: `audio/music/${music}.ogg`, vol: musicVol } : null);
     let aerr = null;
     const aenc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { aerr = e; } });
     aenc.configure({ codec: ac.codec, sampleRate: sr, numberOfChannels: 2, bitrate: 128000 });
@@ -134,6 +151,7 @@ export async function exportVideo({ chat, renderScene, onProgress = () => {}, sp
       const img = typing ? imgs[Math.floor(local / 220) % 3] : imgs[0];
       if (!fill) ctx.drawImage(bg, 0, 0);
       draw(img);
+      if (title) drawTitle(ctx, title, titleStyle);
       const vf = new VideoFrame(canvas, { timestamp: Math.round((frameNo * 1e6) / FPS), duration: Math.round(1e6 / FPS) });
       venc.encode(vf, { keyFrame: frameNo % (FPS * 2) === 0 });
       vf.close();
@@ -150,4 +168,31 @@ export async function exportVideo({ chat, renderScene, onProgress = () => {}, sp
   if (verr) throw verr;
   muxer.finalize();
   return { blob: new Blob([target.buffer], { type: 'video/mp4' }), seconds: total / 1000, audio: withAudio };
+}
+
+function drawTitle(ctx, text, style) {
+  const k = W / 1080;
+  const fs = Math.round(54 * k);
+  ctx.save();
+  ctx.font = `800 ${fs}px 'Plus Jakarta Sans', 'Inter', sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const lines = [];
+  for (const para of text.split('\n')) {
+    let cur = '';
+    for (const w of para.split(' ')) { const tt = cur ? cur + ' ' + w : w; if (ctx.measureText(tt).width > W * 0.8 && cur) { lines.push(cur); cur = w; } else cur = tt; }
+    lines.push(cur);
+  }
+  const lh = fs * 1.25, y0 = H * 0.2 - ((lines.length - 1) * lh) / 2;
+  lines.forEach((ln, i) => {
+    const y = y0 + i * lh, w = ctx.measureText(ln).width;
+    if (style === 'box') {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.roundRect(W / 2 - w / 2 - 22 * k, y - lh / 2, w + 44 * k, lh, 14 * k); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.fillText(ln, W / 2, y + 2 * k);
+    } else {
+      ctx.lineWidth = 10 * k; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round';
+      ctx.strokeText(ln, W / 2, y); ctx.fillStyle = '#fff'; ctx.fillText(ln, W / 2, y);
+    }
+  });
+  ctx.restore();
 }

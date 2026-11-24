@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Video, Plus, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid , tx, labels } from './parts.jsx';
 
 const CLS = { time: 'im-time', system: 'im-time', unread: 'im-unread' };
 
@@ -10,7 +10,7 @@ export default function IMessage({ chat, items, byId, onTap }) {
   return (
     <div className={'shot im ' + (dark ? 'dark' : 'light')} style={{ '--me': chat.meColor || '#0a84ff', '--ts': chat.textScale || 1 }}>
       <div className="im-head">
-        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+        {chat.showStatusBar !== false && <StatusBar cfg={chat} android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
         <div className="im-head-row">
           <div className="im-back">
             <ChevronLeft size={34} strokeWidth={2.4} />
@@ -35,7 +35,7 @@ export default function IMessage({ chat, items, byId, onTap }) {
       <div className="msgs im-msgs">
         {items.map((it, i) => {
           const tap = () => onTap?.(it._i);
-          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
+          if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} chat={chat} />;
           const side = it.from === 'me' ? 'me' : 'them';
           const groupThem = chat.group && side === 'them';
           const cls = `im-row ${side} ${g[i].first ? 'first' : ''} ${it.reaction ? 'has-react' : ''}`;
@@ -60,8 +60,8 @@ export default function IMessage({ chat, items, byId, onTap }) {
                   <Reaction it={it} />
                 </div>
               </div>
-              {it.edited && <div className={'im-edited ' + side}>Edited</div>}
-              {i === lastMeIdx && it.status && it.status !== 'sent' && <div className="im-status">{it.status === 'read' ? 'Read' : 'Delivered'}</div>}
+              {it.edited && <div className={'im-edited ' + side}>{labels(chat).edited}</div>}
+              {i === lastMeIdx && it.status && it.status !== 'sent' && <div className="im-status">{it.status === 'read' ? tx(chat).read : tx(chat).delivered}</div>}
             </div>
           );
         })}

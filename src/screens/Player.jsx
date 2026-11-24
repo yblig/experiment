@@ -5,7 +5,8 @@ import { Play, Pause, RotateCcw, X } from 'lucide-react';
 import Shot from '../templates/Shot.jsx';
 import { useBack } from '../components/ui.jsx';
 import { fx } from '../fx.js';
-import { uid } from '../store.js';
+import { uid, useStore } from '../store.js';
+import { audio } from '../lib/audio.js';
 import { playChatSound } from '../chatSounds.js';
 
 export function buildFrames(chat) {
@@ -13,17 +14,23 @@ export function buildFrames(chat) {
   chat.messages.forEach((m, i) => {
     if (m.kind === 'time' || m.kind === 'system' || m.kind === 'unread') return;
     const prev = chat.messages[i - 1];
+    if (m.pause) frames[frames.length - 1].ms += m.pause * 1000;
     if (m.kind === 'msg' && m.from !== 'me' && prev?.kind !== 'typing') {
       frames.push({ upto: i, extra: { id: 'typ' + i, kind: 'typing', from: 'them', sender: m.sender }, ms: 700 + Math.min(1600, (m.text || '').length * 30) });
     }
-    frames.push({ upto: i + 1, extra: null, ms: m.kind === 'typing' ? 1400 : 650 + Math.min(1800, (m.text || '').length * 38), sound: m.kind === 'msg' ? (m.from === 'me' ? 'send' : 'receive') : null });
+    frames.push({
+      upto: i + 1, extra: null, ms: m.kind === 'typing' ? 1400 : 650 + Math.min(1800, (m.text || '').length * 38),
+      sound: m.kind === 'msg' ? (m.from === 'me' ? 'send' : 'receive') : null,
+      keys: m.kind === 'msg' && m.from === 'me' && (m.type || 'text') === 'text'
+    });
   });
   return frames;
 }
 
-export default function Player({ chat, onClose }) {
+export default function Player({ chat, onClose, startAt = 0 }) {
   const frames = useMemo(() => buildFrames(chat), [chat]);
-  const [f, setF] = useState(0);
+  const [f, setF] = useState(() => Math.max(0, frames.findIndex(fr => fr.upto >= startAt)));
+  const settings = useStore(st => st.settings);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   const [ui, setUi] = useState(true);
@@ -40,13 +47,24 @@ export default function Player({ chat, onClose }) {
     clearTimeout(timer.current);
     if (!playing) return;
     if (f >= frames.length - 1) { setPlaying(false); return; }
+    const nxt = frames[f + 1];
+    let kt = 0;
+    if (nxt?.keys && settings.vKeys !== false && settings.sound) kt = setTimeout(() => playChatSound('keys', 'keys'), Math.max(0, frames[f].ms / speed - 750));
     timer.current = setTimeout(() => {
       const nx = frames[f + 1];
       if (nx?.sound) playChatSound(chat.template, nx.sound === 'send' ? 'send' : 'recv');
       setF(f + 1);
     }, frames[f].ms / speed);
-    return () => clearTimeout(timer.current);
-  }, [f, playing, speed, frames]);
+    return () => { clearTimeout(timer.current); clearTimeout(kt); };
+  }, [f, playing, speed, frames]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { // background music while playing
+    const m = settings.vMusic;
+    if (!m || m === 'none' || !settings.sound) return;
+    const key = 'music_' + m;
+    let alive = true;
+    audio.load({ [key]: `audio/music/${m}.ogg` }).then(() => { if (alive) audio.playMusic(key, { volume: settings.vMusicVol ?? 0.5 }); });
+    return () => { alive = false; audio.stopMusic(0.4); };
+  }, [settings.vMusic]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const id = setTimeout(() => setUi(false), 2500); return () => clearTimeout(id); }, []);
 
   const fr = frames[f];

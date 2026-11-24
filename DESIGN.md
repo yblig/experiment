@@ -65,3 +65,14 @@ leading silence of imported sounds is trimmed. User sound files stay on the phon
 ## v1.6
 App language (Indonesia / English) via src/i18n.js: live DOM translation of UI text outside chat screenshots.
 File pickers stay attached to the page while open (Android WebView could drop detached inputs).
+
+## v2.0 (overnight)
+Fixes: chat sounds use the unlocked audio-manager context and read imported files via Filesystem (Play mode timers and
+file URLs were unreliable on Android); Sounds sheet ▶ shows a diagnostic. In-chat texts follow the language
+(per chat: Ikuti aplikasi / Indonesia / English) incl. dividers, statuses, placeholders, lock screen.
+40 features: drag reorder, multi-select bulk actions, find & replace, reply-to bar, auto-switch sender, emoji row,
+quick phrases, retime all, mark all read, reply ideas, member photos, status presets, bubble colour, chat font,
+signal/wifi/airplane, network label, 12/24h, forwarded, starred, view once, poll, document, video message,
+*rich* text, @mentions, video music (6 tracks in public/audio/music), keyboard sounds, per-message pause,
+video title, 720p/1080p + 30/60fps, watermark position/opacity, labels/folders, sorting, onboarding,
+share/import one chat, random name/number, emoji avatar, auto dark by clock, play from here, full preview.

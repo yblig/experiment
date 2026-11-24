@@ -67,7 +67,7 @@ export function chatToScript(chat) {
     if (m.kind === 'system' || m.kind === 'unread') return `* ${m.text}`;
     if (m.kind === 'typing') return `${nameOf(m)}: ...`;
     const t = m.type || 'text';
-    const body = t === 'text' ? m.text : `[${quoteText(m, chat.template)}]`;
+    const body = t === 'text' ? m.text : `[${quoteText(m, chat)}]`;
     return `${nameOf(m)}: ${body}`;
   }).join('\n');
 }

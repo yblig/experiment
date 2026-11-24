@@ -8,7 +8,7 @@ const g = (name, text, extra = {}) => ({ kind: 'msg', from: 'them', sender: name
 
 export const PRESETS = [
   {
-    key: 'kfc', title: 'Ayam Gratis', desc: 'KFC ngasih syarat yang mustahil',
+    key: 'kfc', title: 'Ayam Gratis', desc: 'KFC ngasih syarat yang mustahil', lang: 'en',
     template: 'imessage', dark: true, contact: { name: 'KFC', status: 'online', handle: '@kfc', unread: '3' }, clock: '19:32',
     messages: [
       t('Today 7:32 PM'),
@@ -234,6 +234,7 @@ export function presetToChat(p, uid) {
     template: p.template,
     dark: p.dark,
     group: !!p.group,
+    lang: p.lang || 'auto',
     verified: !!p.verified,
     participants: parts,
     contact: { avatar: null, ...p.contact },

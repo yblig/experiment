@@ -11,6 +11,7 @@ import Presets from './screens/Presets.jsx';
 import Settings from './screens/Settings.jsx';
 import Editor from './screens/Editor.jsx';
 import NewChatSheet from './screens/NewChatSheet.jsx';
+import Onboarding from './screens/Onboarding.jsx';
 
 function useTheme() {
   const pref = useStore(s => s.settings.theme);
@@ -83,6 +84,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      <Onboarding />
       <ToastHost />
     </>
   );
