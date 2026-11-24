@@ -28,7 +28,7 @@ async function mixAudio(events, seconds, sr) {
   const names = [...new Set(events.map(e => e.name))];
   const bufs = {};
   for (const n of names) {
-    try { bufs[n] = await ctx.decodeAudioData(await (await fetch(`audio/${n}.wav`)).arrayBuffer()); } catch { /* skip */ }
+    try { bufs[n] = await ctx.decodeAudioData(await (await fetch(n)).arrayBuffer()); } catch { /* skip */ }
   }
   for (const e of events) {
     if (!bufs[e.name]) continue;
@@ -45,7 +45,7 @@ const toBitmap = async url => createImageBitmap(await (await fetch(url)).blob())
 const ease = t => 1 - Math.pow(1 - t, 3);
 
 // renderScene(viewChat, phase|null) -> PNG data URL of the phone screen (1080 px wide)
-export async function exportVideo({ chat, renderScene, onProgress = () => {}, speed = 1, sound = true, bgIdx = 0 }) {
+export async function exportVideo({ chat, renderScene, onProgress = () => {}, speed = 1, sound = true, bgIdx = 0, sounds = {} }) {
   if (!videoSupported()) throw new Error('HP ini belum mendukung pembuatan video');
   const codec = await pickVideoCodec();
   if (!codec) throw new Error('Encoder H.264 tidak tersedia di HP ini');
@@ -58,7 +58,7 @@ export async function exportVideo({ chat, renderScene, onProgress = () => {}, sp
   scenes[scenes.length - 1].ms += 1800;
   let t = 0;
   const events = [];
-  scenes.forEach(s => { s.start = t; if (s.sound) events.push({ t: t / 1000, name: s.sound, vol: 0.9 }); t += s.ms; });
+  scenes.forEach(s => { s.start = t; if (s.sound) events.push({ t: t / 1000, name: sounds[s.sound] || `audio/${s.sound}.wav`, vol: 0.9 }); t += s.ms; });
   const total = t;
 
   const target = new ArrayBufferTarget();

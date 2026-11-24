@@ -6,6 +6,7 @@ import Shot from '../templates/Shot.jsx';
 import { useBack } from '../components/ui.jsx';
 import { fx } from '../fx.js';
 import { uid } from '../store.js';
+import { playChatSound } from '../chatSounds.js';
 
 export function buildFrames(chat) {
   const frames = [{ upto: 0, extra: null, ms: 900 }];
@@ -41,7 +42,7 @@ export default function Player({ chat, onClose }) {
     if (f >= frames.length - 1) { setPlaying(false); return; }
     timer.current = setTimeout(() => {
       const nx = frames[f + 1];
-      if (nx?.sound) fx[nx.sound]();
+      if (nx?.sound) playChatSound(chat.template, nx.sound === 'send' ? 'send' : 'recv');
       setF(f + 1);
     }, frames[f].ms / speed);
     return () => clearTimeout(timer.current);

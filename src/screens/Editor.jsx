@@ -16,6 +16,7 @@ import { exportVideo, videoSupported } from '../video.js';
 import { putImage, fileToDataUrl, pickFile, mediaUrl } from '../media.js';
 import { parseScript, applyScript, chatToScript } from '../script.js';
 import { fx } from '../fx.js';
+import { playChatSound, soundUrl } from '../chatSounds.js';
 
 const timeLabel = (tpl, clock) => (tpl === 'imessage' ? `Today ${to12(clock)}` : tpl === 'whatsapp' ? 'HARI INI' : tpl === 'telegram' ? 'Hari ini' : tpl === 'instagram' ? `Today ${to12(clock)}` : tpl === 'sms' || tpl === 'lock' ? 'Hari ini' : 'Today');
 const isAutoLabel = (txt, clock) => Object.keys(TEMPLATES).some(t => timeLabel(t, clock) === txt) || /^Today( \d|$)/.test(txt) || txt === 'HARI INI' || txt === 'Hari ini';
@@ -111,7 +112,7 @@ export default function Editor({ id, onClose }) {
       if (last?.kind === 'typing' && last.from === msg.from && last.sender === msg.sender) list.pop();
       return { ...c, messages: [...list, msg], clock: c.autoTime ? time : c.clock };
     });
-    msg.from === 'me' ? fx.send() : fx.receive();
+    playChatSound(chat.template, msg.from === 'me' ? 'send' : 'recv');
   };
   const send = () => {
     const t = text.trim();
@@ -198,7 +199,7 @@ export default function Editor({ id, onClose }) {
         const fr = view.frame;
         return renderPng(offRef.current, 1080 / 390, chat.template, OUTS[fr] || null);
       };
-      const res = await exportVideo({ chat, renderScene, speed: vid.speed, sound: vid.sound, bgIdx: settings.frameBg || 0,
+      const res = await exportVideo({ chat, renderScene, sounds: { send: soundUrl(chat.template, 'send'), receive: soundUrl(chat.template, 'recv') }, speed: vid.speed, sound: vid.sound, bgIdx: settings.frameBg || 0,
         onProgress: (label, p) => setVid(v => ({ ...v, busy: { label, p } })) });
       setVid(v => ({ ...v, busy: { label: 'Menyimpan video…', p: 0.97 } }));
       const name = fileBase(chat.title);
@@ -498,7 +499,7 @@ export default function Editor({ id, onClose }) {
               <Seg value={vid.speed} onChange={v => setVid(x => ({ ...x, speed: v }))} options={[[1.4, 'Santai'], [1, 'Normal'], [0.7, 'Cepat']]} />
             </div>
             <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)', marginBottom: 14 }}>
-              <div className="row"><Volume2 size={19} /><span className="lbl">Suara notifikasi</span><Switch on={vid.sound} onChange={v => setVid(x => ({ ...x, sound: v }))} /></div>
+              <div className="row"><Volume2 size={19} /><span className="lbl">Suara notifikasi<small>{settings.sendSound?.ref || settings.recvSound?.ref ? 'Pakai suara pilihanmu' : `Suara khas ${TEMPLATES[chat.template]?.label}`} · ganti di Pengaturan</small></span><Switch on={vid.sound} onChange={v => setVid(x => ({ ...x, sound: v }))} /></div>
             </div>
             {chat.frame !== '916' && (
               <div className="field">

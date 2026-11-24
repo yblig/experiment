@@ -28,6 +28,14 @@ export async function putImage(dataUrl) {
   return name;
 }
 
+export async function putMedia(dataUrl, ext = 'bin') {
+  if (!native) return dataUrl;
+  const name = `media/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}.${ext}`;
+  await Filesystem.writeFile({ path: name, data: dataUrl.split(',')[1], directory: Directory.Data, recursive: true });
+  return name;
+}
+export const fileToRawDataUrl = file => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+
 export async function readAsDataUrl(ref) {
   if (!ref || ref.startsWith('data:')) return ref;
   const r = await Filesystem.readFile({ path: ref, directory: Directory.Data });

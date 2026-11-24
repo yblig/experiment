@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput } from 'lucide-react';
+import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput, Send, BellRing, Play, Music, RotateCcw } from 'lucide-react';
+import { playChatSound, clearSoundCache } from '../chatSounds.js';
+import { putMedia, fileToRawDataUrl } from '../media.js';
 import { shareTextFile } from '../exporter.js';
 import { pickFile } from '../media.js';
+
+const EXT = f => (f.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4) || 'mp3';
 import { useStore, TEMPLATES } from '../store.js';
 import { Switch, Seg, Sheet, toast } from '../components/ui.jsx';
 import { fx } from '../fx.js';
@@ -21,6 +25,20 @@ export default function Settings() {
       fx.success(); toast(msg);
     } catch (e) { fx.error(); toast('Gagal mencadangkan: ' + (e?.message || e)); } finally { setBusy(false); }
   };
+  const pickSound = async key => {
+    fx.tap();
+    const f = await pickFile('audio/*');
+    if (!f) return;
+    if (f.size > 3 * 1024 * 1024) { fx.error(); toast('File terlalu besar (maks 3 MB)'); return; }
+    try {
+      const ref = await putMedia(await fileToRawDataUrl(f), EXT(f));
+      setSettings({ [key]: { ref, name: f.name } });
+      clearSoundCache();
+      setTimeout(() => playChatSound(settings.defaultTemplate, key === 'sendSound' ? 'send' : 'recv'), 50);
+      toast('Suara diganti: ' + f.name);
+    } catch { fx.error(); toast('File suara tidak bisa dibuka'); }
+  };
+  const resetSound = key => { fx.tap(); setSettings({ [key]: null }); clearSoundCache(); toast('Kembali ke suara bawaan template'); };
   const restore = async () => {
     fx.tap();
     const f = await pickFile('application/json,.json,text/plain');
@@ -67,10 +85,21 @@ export default function Settings() {
         <div className="card group">
           <div className="row"><Ic c="#ffc145"><Volume2 size={19} /></Ic><span className="lbl">Efek suara</span>
             <Switch on={settings.sound} onChange={v => setSettings({ sound: v })} /></div>
+          {[['sendSound', 'Suara kirim', Send, '#2fd6a3', 'send'], ['recvSound', 'Suara terima', BellRing, '#4dabf7', 'recv']].map(([key, label, I, col, kind]) => (
+            <div className="row" key={key}>
+              <Ic c={col}><I size={18} /></Ic>
+              <span className="lbl">{label}<small>{settings[key]?.name ? <><Music size={11} style={{ verticalAlign: -1 }} /> {settings[key].name}</> : 'Bawaan, mengikuti template chat'}</small></span>
+              <button className="icon-btn tinted press" style={{ width: 38, height: 38 }} onClick={() => playChatSound(settings.defaultTemplate, kind)} aria-label="Dengar"><Play size={16} /></button>
+              {settings[key]?.ref
+                ? <button className="icon-btn tinted press" style={{ width: 38, height: 38 }} onClick={() => resetSound(key)} aria-label="Reset"><RotateCcw size={16} /></button>
+                : <button className="btn ghost press" style={{ height: 38, padding: '0 12px', fontSize: 13 }} onClick={() => pickSound(key)}>Pilih file</button>}
+            </div>
+          ))}
           <div className="row"><Ic c="#ff6b9a"><Vibrate size={19} /></Ic><span className="lbl">Getar</span>
             <Switch on={settings.haptics} onChange={v => setSettings({ haptics: v })} /></div>
         </div>
 
+        <p className="note" style={{ marginTop: -4, marginBottom: 6 }}>Tiap template punya suara kirim/terima khasnya sendiri, dipakai di editor, Mode Putar, dan video MP4. Mau pakai suara lain? Pilih file suaramu sendiri (mp3/ogg/wav/m4a).</p>
         <div className="section-title">Data</div>
         <div className="card group">
           <button className="row press" onClick={backup} disabled={!chats.length || busy}>
@@ -90,7 +119,7 @@ export default function Settings() {
         <div className="section-title">Tentang</div>
         <div className="card group">
           <div className="row"><Ic c="#9aa0b4"><Info size={19} /></Ic>
-            <span className="lbl">ChatSim 1.3<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
+            <span className="lbl">ChatSim 1.4<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
         </div>
         <p className="note">ChatSim dibuat untuk cerita fiksi, video, komik, dan meme. Jangan dipakai untuk menipu, memfitnah, atau mengaku-ngaku chat asli orang lain. Template hanya meniru gaya tampilan dan tidak berafiliasi dengan aplikasi mana pun.</p>
       </div>

@@ -53,3 +53,7 @@ New templates: WhatsApp iPhone style, LINE, Messenger, Snapchat, Tinder, KakaoTa
 MP4 export (src/video.js): scenes from Play mode rendered to PNG, typing dots animated via ph-0/1/2 classes,
 H.264 1080x1920 30fps via WebCodecs + AAC (or Opus fallback) notification sounds mixed with OfflineAudioContext,
 muxed with mp4-muxer, saved to Movies/ChatSim. Speed: Santai/Normal/Cepat.
+
+## v1.4
+Per-template message sounds (public/audio/chat/<template>_send|recv.wav, spec audio/chat_sfx.json), used by the
+editor, Play mode and MP4 export. Settings: replace send/receive sound with the user's own audio file (stored in media/).
