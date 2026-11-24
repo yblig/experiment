@@ -57,3 +57,7 @@ muxed with mp4-muxer, saved to Movies/ChatSim. Speed: Santai/Normal/Cepat.
 ## v1.4
 Per-template message sounds (public/audio/chat/<template>_send|recv.wav, spec audio/chat_sfx.json), used by the
 editor, Play mode and MP4 export. Settings: replace send/receive sound with the user's own audio file (stored in media/).
+
+## v1.5
+Per-template sound slots (settings.tplSounds[tpl].send|recv) with multi-file import that matches by file name;
+leading silence of imported sounds is trimmed. User sound files stay on the phone (not bundled in the repo).

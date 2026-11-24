@@ -255,3 +255,12 @@ textarea.input { height: auto; min-height: 92px; padding: 12px 14px; resize: non
 .size-box i { display: block; border: 2.5px solid currentColor; border-radius: 4px; }
 .size-opt b { display: block; font-size: 15px; } .size-opt small { color: var(--sub); font-size: 12.5px; }
 .spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid currentColor; border-right-color: transparent; animation: sp .8s linear infinite; } @keyframes sp { to { transform: rotate(360deg); } }
+.snd-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.snd-name { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14.5px; margin-bottom: 8px; }
+.snd-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.snd-slot { display: flex; align-items: center; gap: 4px; background: var(--surface2); border-radius: 12px; padding: 4px 4px 4px 0; border: 1.5px solid transparent; min-width: 0; }
+.snd-slot.on { border-color: color-mix(in srgb, var(--accent2) 70%, transparent); background: color-mix(in srgb, var(--accent2) 10%, var(--surface2)); }
+.snd-main { flex: 1; min-width: 0; text-align: left; padding: 4px 6px 4px 10px; display: flex; flex-direction: column; }
+.snd-main small { font-size: 10.5px; font-weight: 800; color: var(--sub); text-transform: uppercase; letter-spacing: .4px; }
+.snd-main span { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 3px; }
+.snd-ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: var(--sub); flex-shrink: 0; }

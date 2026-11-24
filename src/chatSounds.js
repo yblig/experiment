@@ -6,6 +6,8 @@ import { haptics } from './lib/haptics.js';
 
 const SET = s => useStore.getState().settings[s];
 export function soundUrl(template, kind) {
+  const per = SET('tplSounds')?.[template]?.[kind];
+  if (per?.ref) return mediaUrl(per.ref);
   const custom = SET(kind === 'send' ? 'sendSound' : 'recvSound');
   if (custom?.ref) return mediaUrl(custom.ref);
   const t = template === 'lock' && kind === 'send' ? 'lock' : template || 'whatsapp';
@@ -29,6 +31,26 @@ export async function playChatSound(template, kind) {
     if (!b) return;
     if (ctx.state === 'suspended') await ctx.resume();
     const s = ctx.createBufferSource();
-    s.buffer = b; s.connect(ctx.destination); s.start();
+    s.buffer = b; s.connect(ctx.destination); s.start(0, leadIn(b));
   } catch { /* ignore */ }
+}
+
+// Seconds of silence at the start of a sound file (so imported sounds play right on cue).
+export function leadIn(buf) {
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > 0.02) return Math.max(0, i / buf.sampleRate - 0.01);
+  return 0;
+}
+
+// Guess which template + slot a sound file belongs to from its name.
+const KEYS = [
+  ['whatsapp', /whats\s*app|\bwa\b/i], ['imessage', /iphone|imessage|\bios\b|apple/i], ['snapchat', /snap/i],
+  ['telegram', /telegram|\btg\b/i], ['instagram', /insta|\big\b/i], ['messenger', /messenger|facebook|\bfb\b/i],
+  ['line', /\bline\b/i], ['tinder', /tinder/i], ['kakao', /kakao/i], ['sms', /\bsms\b|android|samsung/i], ['x', /twitter|\bx\b/i]
+];
+export function guessSlot(fileName) {
+  const n = fileName.replace(/[-_.]+/g, ' ');
+  const tpl = KEYS.find(([, re]) => re.test(n))?.[0] || null;
+  const kind = /swoosh|\bsend|\bsent|kirim|outgoing|keluar/i.test(n) ? 'send' : 'recv';
+  return { tpl, kind };
 }

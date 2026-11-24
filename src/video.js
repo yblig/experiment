@@ -3,6 +3,7 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { buildFrames } from './screens/Player.jsx';
 import { FRAME_BGS } from './exporter.js';
+import { leadIn } from './chatSounds.js';
 
 export const W = 1080, H = 1920, FPS = 30;
 export const videoSupported = () => typeof window !== 'undefined' && 'VideoEncoder' in window && 'VideoFrame' in window;
@@ -36,7 +37,7 @@ async function mixAudio(events, seconds, sr) {
     s.buffer = bufs[e.name];
     const g = ctx.createGain(); g.gain.value = e.vol ?? 1;
     s.connect(g).connect(ctx.destination);
-    s.start(e.t);
+    s.start(e.t, leadIn(bufs[e.name]));
   }
   return ctx.startRendering();
 }

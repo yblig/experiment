@@ -3,6 +3,7 @@ import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, Dat
 import { playChatSound, clearSoundCache } from '../chatSounds.js';
 import { putMedia, fileToRawDataUrl } from '../media.js';
 import { shareTextFile } from '../exporter.js';
+import SoundSheet from './SoundSheet.jsx';
 import { pickFile } from '../media.js';
 
 const EXT = f => (f.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4) || 'mp3';
@@ -16,6 +17,7 @@ export default function Settings() {
   const { settings, setSettings, clearAll, chats, exportAll, importAll } = useStore();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [soundOpen, setSoundOpen] = useState(false);
   const backup = async () => {
     if (busy) return;
     fx.tap(); setBusy(true);
@@ -85,16 +87,11 @@ export default function Settings() {
         <div className="card group">
           <div className="row"><Ic c="#ffc145"><Volume2 size={19} /></Ic><span className="lbl">Efek suara</span>
             <Switch on={settings.sound} onChange={v => setSettings({ sound: v })} /></div>
-          {[['sendSound', 'Suara kirim', Send, '#2fd6a3', 'send'], ['recvSound', 'Suara terima', BellRing, '#4dabf7', 'recv']].map(([key, label, I, col, kind]) => (
-            <div className="row" key={key}>
-              <Ic c={col}><I size={18} /></Ic>
-              <span className="lbl">{label}<small>{settings[key]?.name ? <><Music size={11} style={{ verticalAlign: -1 }} /> {settings[key].name}</> : 'Bawaan, mengikuti template chat'}</small></span>
-              <button className="icon-btn tinted press" style={{ width: 38, height: 38 }} onClick={() => playChatSound(settings.defaultTemplate, kind)} aria-label="Dengar"><Play size={16} /></button>
-              {settings[key]?.ref
-                ? <button className="icon-btn tinted press" style={{ width: 38, height: 38 }} onClick={() => resetSound(key)} aria-label="Reset"><RotateCcw size={16} /></button>
-                : <button className="btn ghost press" style={{ height: 38, padding: '0 12px', fontSize: 13 }} onClick={() => pickSound(key)}>Pilih file</button>}
-            </div>
-          ))}
+          <button className="row press" onClick={() => { fx.tap(); setSoundOpen(true); }}>
+            <Ic c="#2fd6a3"><Music size={18} /></Ic>
+            <span className="lbl">Suara per aplikasi<small>{(() => { const n = Object.values(settings.tplSounds || {}).reduce((a, v) => a + (v?.send?.ref ? 1 : 0) + (v?.recv?.ref ? 1 : 0), 0) + (settings.sendSound?.ref ? 1 : 0) + (settings.recvSound?.ref ? 1 : 0); return n ? `${n} suara pilihanmu terpasang` : 'Bawaan · impor suaramu sendiri'; })()}</small></span>
+            <span style={{ color: 'var(--sub)', fontSize: 20 }}>›</span>
+          </button>
           <div className="row"><Ic c="#ff6b9a"><Vibrate size={19} /></Ic><span className="lbl">Getar</span>
             <Switch on={settings.haptics} onChange={v => setSettings({ haptics: v })} /></div>
         </div>
@@ -119,10 +116,11 @@ export default function Settings() {
         <div className="section-title">Tentang</div>
         <div className="card group">
           <div className="row"><Ic c="#9aa0b4"><Info size={19} /></Ic>
-            <span className="lbl">ChatSim 1.4<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
+            <span className="lbl">ChatSim 1.5<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
         </div>
         <p className="note">ChatSim dibuat untuk cerita fiksi, video, komik, dan meme. Jangan dipakai untuk menipu, memfitnah, atau mengaku-ngaku chat asli orang lain. Template hanya meniru gaya tampilan dan tidak berafiliasi dengan aplikasi mana pun.</p>
       </div>
+      <SoundSheet open={soundOpen} onClose={() => setSoundOpen(false)} />
       <Sheet open={confirm} onClose={() => setConfirm(false)} title="Hapus semua chat?">
         <p className="note" style={{ padding: '0 2px 16px' }}>Semua {chats.length} chat akan dihapus permanen dari HP ini. Preset tetap ada.</p>
         <div className="grid2">

@@ -71,3 +71,12 @@ export function pickFile(accept = 'image/*') {
     inp.click();
   });
 }
+
+export function pickFiles(accept = '*/*') {
+  return new Promise(resolve => {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = accept; inp.multiple = true;
+    inp.onchange = () => resolve([...(inp.files || [])]);
+    inp.click();
+  });
+}
