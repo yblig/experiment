@@ -50,12 +50,13 @@ export default function SoundSheet({ open, onClose }) {
 
   const Slot = ({ tpl, kind }) => {
     const v = slotOf(tpl, kind);
+    const other = slotOf(tpl, kind === 'send' ? 'recv' : 'send');
     const playTpl = tpl === '*' ? settings.defaultTemplate : tpl;
     return (
       <div className={'snd-slot' + (v?.ref ? ' on' : '')}>
         <button className="snd-main press" onClick={() => pickOne(tpl, kind)}>
           <small>{kind === 'send' ? 'Kirim' : 'Terima'}</small>
-          <span>{v?.ref ? <><Music size={11} /> {short(v.name)}</> : 'Bawaan'}</span>
+          <span>{v?.ref ? <><Music size={11} /> {short(v.name)}</> : other?.ref ? <i style={{ fontWeight: 500 }}>= {short(other.name)}</i> : 'Bawaan'}</span>
         </button>
         <button className="snd-ic press" onClick={() => playChatSound(playTpl, kind)} aria-label="Dengar"><Play size={14} /></button>
         {v?.ref && <button className="snd-ic press" onClick={() => { fx.tap(); setSlot(tpl, kind, null); }} aria-label="Reset"><RotateCcw size={14} /></button>}
@@ -68,7 +69,7 @@ export default function SoundSheet({ open, onClose }) {
       <button className="btn primary block press" onClick={importMany}><FolderInput size={19} /> Impor file suara (bisa banyak)</button>
       <p className="note" style={{ margin: '8px 0 14px' }}>
         Pilih beberapa file sekaligus. Aplikasi menebak dari nama file: <b>whatsapp</b> → WhatsApp, <b>iphone/imessage</b> → iMessage, <b>snapchat</b> → Snapchat, dst.
-        Nama berisi <b>swoosh/send/kirim</b> jadi suara kirim, selain itu suara terima. Ketuk kotak untuk ganti manual. File disimpan di HP ini saja.
+        Kalau satu aplikasi cuma punya satu file, file itu dipakai untuk kirim dan terima. Ketuk kotak untuk ganti manual. File disimpan di HP ini saja.
       </p>
       <div className="snd-row">
         <span className="snd-name"><span className="tpl-ic" style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--surface2)' }}><Music size={16} /></span>Semua aplikasi</span>

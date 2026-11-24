@@ -25,6 +25,7 @@ import App from './App.jsx';
   native.toast = () => toast('Tekan kembali sekali lagi untuk keluar');
   useStore.getState().load();
   window.__store = useStore;
+  import('./chatSounds.js').then(m => { window.__snd = m; });
   createRoot(document.getElementById('app')).render(<App />);
   loadSounds();
   requestAnimationFrame(() => native.hideSplash());

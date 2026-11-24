@@ -6,9 +6,11 @@ import { haptics } from './lib/haptics.js';
 
 const SET = s => useStore.getState().settings[s];
 export function soundUrl(template, kind) {
-  const per = SET('tplSounds')?.[template]?.[kind];
+  const slots = SET('tplSounds')?.[template] || {};
+  // one imported file for an app is used for both sending and receiving
+  const per = slots[kind]?.ref ? slots[kind] : slots[kind === 'send' ? 'recv' : 'send'];
   if (per?.ref) return mediaUrl(per.ref);
-  const custom = SET(kind === 'send' ? 'sendSound' : 'recvSound');
+  const custom = SET(kind === 'send' ? 'sendSound' : 'recvSound') || SET(kind === 'send' ? 'recvSound' : 'sendSound');
   if (custom?.ref) return mediaUrl(custom.ref);
   const t = template === 'lock' && kind === 'send' ? 'lock' : template || 'whatsapp';
   return `audio/chat/${t}_${kind}.wav`;
