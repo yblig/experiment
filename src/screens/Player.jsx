@@ -7,7 +7,7 @@ import { useBack } from '../components/ui.jsx';
 import { fx } from '../fx.js';
 import { uid } from '../store.js';
 
-function buildFrames(chat) {
+export function buildFrames(chat) {
   const frames = [{ upto: 0, extra: null, ms: 900 }];
   chat.messages.forEach((m, i) => {
     if (m.kind === 'time' || m.kind === 'system' || m.kind === 'unread') return;

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, SlidersHorizontal, Download, Send, Plus, Moon, Sun, ChevronUp, ChevronDown, Trash2, Copy, Undo2, Redo2, Play,
   Clock3, MoreHorizontal, Eraser, ArrowLeftRight, Camera, ImageOff, Share2, Film, Check, Image as ImageIcon, Mic, Phone, Ban,
-  Type, Info, BellDot, FileText, Reply, X, Users, UserPlus, ClipboardCopy, Frame, MapPin, Sticker, Contact, BookmarkPlus, List, MoreVertical, ChevronDown as Caret, Minus, LayoutGrid
+  Type, Info, BellDot, FileText, Reply, X, Users, UserPlus, ClipboardCopy, Frame, MapPin, Sticker, Contact, BookmarkPlus, List, MoreVertical, ChevronDown as Caret, Minus, LayoutGrid, Clapperboard, Volume2
 } from 'lucide-react';
 import { useStore, TEMPLATES, uid, addMinutes, PCOLORS } from '../store.js';
 import { Sheet, Seg, Switch, toast, useBack } from '../components/ui.jsx';
@@ -11,7 +11,8 @@ import Shot, { FRAMES } from '../templates/Shot.jsx';
 import TplGrid, { TplIcon } from '../components/TplGrid.jsx';
 import Player from './Player.jsx';
 import { to12, LABELS, quoteText } from '../templates/parts.jsx';
-import { renderPng, savePng, sharePngs, fileBase, frame916, FRAME_BGS } from '../exporter.js';
+import { renderPng, savePng, sharePngs, fileBase, frame916, FRAME_BGS, saveVideo, shareVideo } from '../exporter.js';
+import { exportVideo, videoSupported } from '../video.js';
 import { putImage, fileToDataUrl, pickFile, mediaUrl } from '../media.js';
 import { parseScript, applyScript, chatToScript } from '../script.js';
 import { fx } from '../fx.js';
@@ -57,6 +58,8 @@ export default function Editor({ id, onClose }) {
   const offRef = useRef(null);
   const [offUpto, setOffUpto] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [offView, setOffView] = useState(null);
+  const [vid, setVid] = useState({ speed: 1, sound: true, busy: null, result: null });
 
   useBack(!sheet && !playing, onClose);
   useEffect(() => { if (!chat) onClose(); }, [chat, onClose]);
@@ -183,6 +186,32 @@ export default function Editor({ id, onClose }) {
     } finally { setBusy(null); setOffUpto(null); }
   };
 
+  const OUTS = { '916': [1080, 1920], '45': [1080, 1350], '11': [1080, 1080] };
+  const makeVideo = async () => {
+    if (vid.busy) return;
+    if (!msgs.some(m => m.kind === 'msg')) { fx.error(); toast('Tambahkan pesan dulu'); return; }
+    setVid(v => ({ ...v, busy: { label: 'Menyiapkan…', p: 0 }, result: null }));
+    try {
+      const renderScene = async (view, phase) => {
+        setOffView({ chat: view, phase });
+        await waitFrames();
+        const fr = view.frame;
+        return renderPng(offRef.current, 1080 / 390, chat.template, OUTS[fr] || null);
+      };
+      const res = await exportVideo({ chat, renderScene, speed: vid.speed, sound: vid.sound, bgIdx: settings.frameBg || 0,
+        onProgress: (label, p) => setVid(v => ({ ...v, busy: { label, p } })) });
+      setVid(v => ({ ...v, busy: { label: 'Menyimpan video…', p: 0.97 } }));
+      const name = fileBase(chat.title);
+      const where = await saveVideo(res.blob, name);
+      fx.success();
+      setVid(v => ({ ...v, busy: null, result: { ...res, name, where, url: URL.createObjectURL(res.blob) } }));
+    } catch (e) {
+      fx.error();
+      setVid(v => ({ ...v, busy: null }));
+      toast('Gagal membuat video: ' + (e?.message || e));
+    } finally { setOffView(null); }
+  };
+
   const tplColor = TEMPLATES[chat.template]?.color || '#7c6cff';
   const parsed = sheet === 'import' && script.trim() ? parseScript(script, chat) : null;
   const pickReplyable = msgs.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'msg' && i !== editIdx);
@@ -241,6 +270,7 @@ export default function Editor({ id, onClose }) {
           </button>
           <button className="pov-size press" onClick={() => { fx.tap(); setSheet('size'); }}>{(SIZES.find(x => x[0] === (chat.frame || 'phone')) || SIZES[3])[1]}<Caret size={18} /></button>
           <button className="pov-play press" disabled={!msgs.length} onClick={() => { fx.tap(); setPlaying(true); }} aria-label="Putar"><Play size={20} fill="currentColor" /></button>
+          <button className="pov-size press" disabled={!msgs.length} onClick={() => { fx.tap(); setVid(v => ({ ...v, result: null })); setSheet('video'); }}><Clapperboard size={19} /> Video</button>
         </div>
       )}
 
@@ -257,7 +287,8 @@ export default function Editor({ id, onClose }) {
       </div>
 
       <div className="offscreen" aria-hidden>
-        {offUpto !== null || busy ? <Shot ref={offRef} chat={chat} upto={offUpto ?? undefined} /> : null}
+        {offView ? <Shot ref={offRef} chat={offView.chat} phase={offView.phase} />
+          : offUpto !== null || busy ? <Shot ref={offRef} chat={chat} upto={offUpto ?? undefined} /> : null}
       </div>
 
       <AnimatePresence>{playing && <Player key="pl" chat={chat} onClose={() => setPlaying(false)} />}</AnimatePresence>
@@ -436,6 +467,50 @@ export default function Editor({ id, onClose }) {
               <button className="btn danger press" onClick={() => removeMsg(editIdx)}><Trash2 size={18} /> Hapus</button>
               <button className="btn primary press" onClick={() => { fx.tap(); setSheet(null); }}><Check size={18} /> Selesai</button>
             </div>
+          </>
+        )}
+      </Sheet>
+
+      {/* video */}
+      <Sheet open={sheet === 'video'} onClose={() => !vid.busy && setSheet(null)} title="Ekspor video MP4">
+        {!videoSupported() ? (
+          <p className="note" style={{ padding: '0 2px 16px' }}>HP ini belum mendukung pembuatan video di dalam aplikasi. Pakai <b>Mode Putar</b> + perekam layar, atau update Android System WebView di Play Store lalu coba lagi.</p>
+        ) : vid.busy ? (
+          <div style={{ padding: '6px 0 20px' }}>
+            <b>{vid.busy.label}</b>
+            <div className="progress"><i style={{ width: Math.round(vid.busy.p * 100) + '%' }} /></div>
+            <p className="note">Video dibuat langsung di HP. Jangan tutup aplikasi dulu ya.</p>
+          </div>
+        ) : vid.result ? (
+          <div style={{ paddingBottom: 12 }}>
+            <video src={vid.result.url} controls playsInline style={{ width: '100%', maxHeight: 360, borderRadius: 14, background: '#000' }} />
+            <p className="note">{vid.result.where} · {Math.round(vid.result.seconds)} detik · {(vid.result.blob.size / 1048576).toFixed(1)} MB{vid.result.audio ? '' : ' · tanpa suara (HP tidak mendukung)'}</p>
+            <div className="grid2" style={{ marginTop: 10 }}>
+              <button className="btn ghost press" onClick={() => setVid(v => ({ ...v, result: null }))}>Buat lagi</button>
+              <button className="btn primary press" onClick={async () => { try { await shareVideo(vid.result.blob, vid.result.name); } catch { /* cancelled */ } }}><Share2 size={18} /> Bagikan</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="note" style={{ padding: '0 2px 12px' }}>Pesan muncul satu per satu, "mengetik…" muncul sebelum tiap balasan, plus suara kirim/terima. Ukuran video 1080×1920{chat.frame === '916' ? '' : ' (layar chat ditaruh di atas latar gradasi, pilih ukuran TikTok supaya penuh)'}.</p>
+            <div className="field">
+              <label>Kecepatan</label>
+              <Seg value={vid.speed} onChange={v => setVid(x => ({ ...x, speed: v }))} options={[[1.4, 'Santai'], [1, 'Normal'], [0.7, 'Cepat']]} />
+            </div>
+            <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)', marginBottom: 14 }}>
+              <div className="row"><Volume2 size={19} /><span className="lbl">Suara notifikasi</span><Switch on={vid.sound} onChange={v => setVid(x => ({ ...x, sound: v }))} /></div>
+            </div>
+            {chat.frame !== '916' && (
+              <div className="field">
+                <label>Latar</label>
+                <div className="frame-bgs">
+                  {FRAME_BGS.map(([a, b], i) => (
+                    <button key={i} className={'press' + ((settings.frameBg || 0) === i ? ' on' : '')} style={{ background: `linear-gradient(135deg,${a},${b})` }} onClick={() => { fx.tap(); setSettings({ frameBg: i }); }} aria-label={'Latar ' + (i + 1)} />
+                  ))}
+                </div>
+              </div>
+            )}
+            <button className="btn primary block press" onClick={makeVideo}><Clapperboard size={19} /> Buat video</button>
           </>
         )}
       </Sheet>
@@ -656,6 +731,8 @@ export default function Editor({ id, onClose }) {
               <span>Simpan ke galeri<br /><small className="note" style={{ padding: 0 }}>1 gambar PNG {settings.frame916 ? 'berbingkai 9:16' : chat.frame === 'auto' ? 'panjang' : 'seukuran layar HP'}</small></span></button>
             <button className="menu-item press" onClick={() => doExport('share')}><Share2 size={20} />
               <span>Bagikan<br /><small className="note" style={{ padding: 0 }}>Kirim ke WhatsApp, TikTok, CapCut, dll.</small></span></button>
+            <button className="menu-item press" onClick={() => { fx.tap(); setVid(v => ({ ...v, result: null })); setSheet('video'); }}><Clapperboard size={20} />
+              <span>Ekspor video MP4<br /><small className="note" style={{ padding: 0 }}>Animasi mengetik + suara, 1080×1920, siap TikTok</small></span></button>
             <button className="menu-item press" onClick={() => doExport('steps')}><Film size={20} />
               <span>Ekspor bertahap untuk video<br /><small className="note" style={{ padding: 0 }}>1 gambar tiap pesan baru ({msgs.filter(m => !['time', 'system', 'unread'].includes(m.kind)).length} gambar)</small></span></button>
             <button className="menu-item press" onClick={() => { setSheet(null); setPlaying(true); fx.tap(); }}><Play size={20} />

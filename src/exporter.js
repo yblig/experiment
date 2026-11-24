@@ -115,3 +115,30 @@ export async function frame916(dataUrl, bgIdx = 0) {
   ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.clip(); ctx.drawImage(img, x, y, w, h); ctx.restore();
   return c.toDataURL('image/png');
 }
+
+const blobToBase64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+
+// Saves an MP4 into Movies/ChatSim (falls back to Documents/ChatSim).
+export async function saveVideo(blob, name) {
+  if (!Capacitor.isNativePlatform()) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name + '.mp4'; a.click();
+    return 'Video diunduh';
+  }
+  await ensurePerm();
+  const data = await blobToBase64(blob);
+  try {
+    await Filesystem.writeFile({ path: `Movies/ChatSim/${name}.mp4`, data, directory: Directory.ExternalStorage, recursive: true });
+    return 'Video tersimpan di Galeri › Movies/ChatSim';
+  } catch {
+    await Filesystem.writeFile({ path: `ChatSim/${name}.mp4`, data, directory: Directory.Documents, recursive: true });
+    return 'Video tersimpan di Documents/ChatSim';
+  }
+}
+
+export async function shareVideo(blob, name) {
+  if (!Capacitor.isNativePlatform()) return saveVideo(blob, name);
+  const r = await Filesystem.writeFile({ path: `share/${name}.mp4`, data: await blobToBase64(blob), directory: Directory.Cache, recursive: true });
+  await Share.share({ files: [r.uri], title: 'ChatSim' });
+  return 'Dibagikan';
+}

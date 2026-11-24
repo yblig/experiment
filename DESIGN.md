@@ -48,3 +48,8 @@ Text style, Bubble thickness, Unread count, Chat status + "Gunakan default", New
 Wallpaper tiles (default / your photo), Text size stepper. Editor is a full-height POV with a floating
 Save button, POV size picker (TikTok 9:16 1080×1920, IG 4:5, 1:1, phone, long) and Play.
 New templates: WhatsApp iPhone style, LINE, Messenger, Snapchat, Tinder, KakaoTalk (12 total).
+
+## v1.3
+MP4 export (src/video.js): scenes from Play mode rendered to PNG, typing dots animated via ph-0/1/2 classes,
+H.264 1080x1920 30fps via WebCodecs + AAC (or Opus fallback) notification sounds mixed with OfflineAudioContext,
+muxed with mp4-muxer, saved to Movies/ChatSim. Speed: Santai/Normal/Cepat.
