@@ -1,5 +1,5 @@
 import { ArrowLeft, MoreVertical, Smile, Paperclip, Mic, Phone } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
 
 // Original wallpaper: soft gradient with a faint scattered-shape pattern.
 const pattern = c => `url("data:image/svg+xml,${encodeURIComponent(
@@ -27,7 +27,7 @@ export default function Telegram({ chat, items, byId, onTap }) {
   return (
     <div className={'shot tg ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="tg-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" android />}
+        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" />}
         <div className="tg-head-row">
           <ArrowLeft size={24} strokeWidth={2.2} />
           <Avatar contact={chat.contact} size={42} flat color="#5fa8d3" />

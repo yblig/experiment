@@ -9,6 +9,11 @@ export const LABELS = {
   instagram: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'Message unsent', edited: 'Edited', you: 'You', voice: 'Audio call', video: 'Video chat', missed: 'Missed audio call', missedVideo: 'Missed video chat', unread: 'Unread', photo: 'Photo', vn: 'Voice message' },
   sms: { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Anda menghapus pesan ini', deletedThem: 'Pesan ini dihapus', edited: 'Diedit', you: 'Anda', voice: 'Panggilan suara', video: 'Panggilan video', missed: 'Panggilan tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: 'Pesan baru', photo: 'Foto', vn: 'Pesan suara' },
   lock: { callBack: 'Ketuk untuk menelepon balik', mins: '2 menit', deleted: 'Pesan dihapus', deletedThem: 'Pesan dihapus', edited: 'Diedit', you: 'Anda', voice: 'Panggilan suara', video: 'Panggilan video', missed: 'Panggilan tak terjawab', missedVideo: 'Panggilan video tak terjawab', unread: 'Baru', photo: 'Foto', vn: 'Pesan suara' },
+  line: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
+  messenger: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
+  snapchat: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
+  tinder: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
+  kakao: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You unsent a message', deletedThem: 'This message was unsent', edited: 'Edited', you: 'You', voice: 'Voice call', video: 'Video call', missed: 'Missed voice call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' },
   x: { callBack: 'Tap to call back', mins: '2 min', deleted: 'You deleted this message', deletedThem: 'This message was deleted', edited: 'Edited', you: 'You', voice: 'Audio call', video: 'Video call', missed: 'Missed audio call', missedVideo: 'Missed video call', unread: 'Unread messages', photo: 'Photo', vn: 'Voice message' }
 };
 
@@ -74,6 +79,8 @@ export function Verified({ color = '#1d9bf0', size = 16, check = '#fff' }) {
     </svg>
   );
 }
+
+export const sbAndroid = (chat, def) => (chat.sbStyle === 'ios' ? false : chat.sbStyle === 'android' ? true : def);
 
 export function StatusBar({ time, battery = 76, color = '#fff', android = false, charging = false }) {
   const lvl = Math.max(4, Math.min(100, battery));

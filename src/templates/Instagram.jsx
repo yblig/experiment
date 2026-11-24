@@ -1,5 +1,5 @@
 import { ArrowLeft, Phone, Video, Camera, Mic, Image, Sticker } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
 
 const CLS = { time: 'ig-time', system: 'ig-time', unread: 'ig-unread' };
 
@@ -11,7 +11,7 @@ export default function Instagram({ chat, items, byId, onTap }) {
   return (
     <div className={'shot ig ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="ig-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
         <div className="ig-head-row">
           <ArrowLeft size={26} strokeWidth={2} />
           <div className="ig-avwrap">

@@ -6,9 +6,10 @@ import { Share } from '@capacitor/share';
 
 const fontCache = new Map();
 
-export async function renderPng(node, scale = 3, key = 'x') {
+export async function renderPng(node, scale = 3, key = 'x', size = null) {
   if (!fontCache.has(key)) fontCache.set(key, await getFontEmbedCSS(node).catch(() => ''));
-  const opts = { pixelRatio: scale, fontEmbedCSS: fontCache.get(key), width: node.offsetWidth, height: node.offsetHeight, cacheBust: false };
+  const opts = { pixelRatio: scale, fontEmbedCSS: fontCache.get(key), width: node.offsetWidth, height: node.offsetHeight, cacheBust: false,
+    ...(size ? { canvasWidth: size[0] / scale, canvasHeight: size[1] / scale } : {}) };
   // first call warms up images/fonts inside the WebView; the second is reliable
   await toPng(node, { ...opts, pixelRatio: 0.2 }).catch(() => {});
   return toPng(node, opts);

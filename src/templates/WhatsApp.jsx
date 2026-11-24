@@ -1,5 +1,5 @@
-import { ArrowLeft, Video, Phone, MoreVertical, Smile, Paperclip, Camera, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard } from './parts.jsx';
+import { ArrowLeft, ChevronLeft, Video, Phone, MoreVertical, Smile, Paperclip, Camera, Mic, Plus, StickyNote } from 'lucide-react';
+import { Avatar, StatusBar, groupInfo, Ticks, Content, Reaction, NonBubble, bigEmoji, typeOf, Verified, wallpaperStyle , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
 
 // Original doodle wallpaper (drawn for this app), tiled behind the messages.
 const doodle = c => `url("data:image/svg+xml,${encodeURIComponent(
@@ -19,6 +19,7 @@ const CLS = { time: 'wa-date', system: 'wa-date sys', unread: 'wa-unread' };
 
 export default function WhatsApp({ chat, items, byId, onTap }) {
   const dark = chat.dark;
+  const ios = chat.waStyle === 'ios';
   const g = groupInfo(items, chat.group);
   const last = items[items.length - 1];
   const typing = last?.kind === 'typing' && last.from !== 'me';
@@ -30,9 +31,24 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
   const shownItems = chat.group && typing ? items.slice(0, -1) : shown;
   const bg = wallpaperStyle(chat, { backgroundImage: doodle(dark ? 'rgba(255,255,255,.045)' : 'rgba(84,101,111,.09)'), backgroundSize: '160px 160px' });
   return (
-    <div className={'shot wa ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
+    <div className={'shot wa ' + (dark ? 'dark' : 'light') + (ios ? ' ios' : '')} style={{ '--ts': chat.textScale || 1 }}>
+      {ios ? (
+        <div className="wa-head ios">
+          {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+          <div className="wa-head-row">
+            <span className="wa-iback"><ChevronLeft size={32} strokeWidth={2.2} />{chat.contact.unread ? <b>{chat.contact.unread}</b> : null}</span>
+            <Avatar contact={chat.contact} size={40} personIcon={chat.contact.avatar ? null : { bg: dark ? '#6a7175' : '#dfe5e7', fg: dark ? '#cfd4d6' : '#fff' }} />
+            <div className="wa-who">
+              <div className="wa-name">{chat.contact.name || 'Unknown'}{chat.verified && <Verified size={15} color="#25d366" />}</div>
+              {sub && <div className="wa-sub">{sub}</div>}
+            </div>
+            <Video size={27} strokeWidth={1.7} />
+            <Phone size={22} strokeWidth={1.8} />
+          </div>
+        </div>
+      ) : (
       <div className="wa-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" android />}
+        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color="#fff" />}
         <div className="wa-head-row">
           <ArrowLeft size={24} strokeWidth={2.2} />
           <Avatar contact={chat.contact} size={40} personIcon={chat.contact.avatar ? null : { bg: dark ? '#6a7175' : '#dfe5e7', fg: dark ? '#cfd4d6' : '#fff' }} />
@@ -45,13 +61,14 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
           <MoreVertical size={22} strokeWidth={2.2} />
         </div>
       </div>
+      )}
       <PinBar chat={chat} />
       <div className="msgs wa-msgs" style={bg}>
         {shownItems.map((it, i) => {
           const tap = () => onTap?.(it._i);
           if (!['msg', 'typing'].includes(it.kind)) return <NonBubble key={it.id} it={it} onTap={tap} cls={CLS} />;
           const side = it.from === 'me' ? 'me' : 'them';
-          const first = g[i].first;
+          const first = ios ? g[i].last : g[i].first;
           if (it.kind === 'typing') {
             return (
               <div key={it.id} className={`wa-row ${side} ${first ? 'first' : ''}`} onClick={tap}>
@@ -72,11 +89,17 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
             <div key={it.id} className={`wa-row ${side} ${first ? 'first' : ''} ${it.reaction ? 'has-react' : ''}`} onClick={tap}>
               <div className={`wa-b ${side} k-${big ? 'emoji' : t} ${first && !big ? 'tail' : ''}`} style={big ? { fontSize: 50 - big * 6 } : null}>
                 {first && !big && (
+                  ios ? (
+                    <svg className="wa-tailsvg bottom" width="12" height="16" viewBox="0 0 12 16">
+                      {side === 'me' ? <path d="M0 0c0 7 1.5 11.6 11.2 15.4.5.2.4.6-.1.6C6 16 2 14.5 0 12z" /> : <path d="M12 0c0 7-1.5 11.6-11.2 15.4-.5.2-.4.6.1.6C6 16 10 14.5 12 12z" />}
+                    </svg>
+                  ) : (
                   <svg className="wa-tailsvg" width="8" height="13" viewBox="0 0 8 13">
                     {side === 'me' ? <path d="M0 0h6.4c1.2 0 1.9 1.4 1.1 2.4L0 13z" /> : <path d="M8 0H1.6C.4 0-.3 1.4.5 2.4L8 13z" />}
                   </svg>
+                  )
                 )}
-                <Content it={it} chat={chat} byId={byId} showName={chat.group && side === 'them' && first} />
+                <Content it={it} chat={chat} byId={byId} showName={chat.group && side === 'them' && g[i].first} />
                 {t !== 'call' && <span className="wa-meta-space">{meta}</span>}
                 <span className="wa-meta">{meta}</span>
                 <Reaction it={it} />
@@ -85,7 +108,15 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
           );
         })}
       </div>
-      {chat.showInput !== false && (
+      {chat.showInput !== false && ios && (
+        <div className="wa-input ios">
+          <Plus size={28} strokeWidth={1.7} />
+          <span className="wa-field"><span className="wa-ph"><Draft chat={chat} placeholder="" /></span><StickyNote size={22} strokeWidth={1.7} /></span>
+          <Camera size={26} strokeWidth={1.7} />
+          <Mic size={25} strokeWidth={1.7} />
+        </div>
+      )}
+      {chat.showInput !== false && !ios && (
         <div className="wa-input">
           <span className="wa-field">
             <Smile size={23} strokeWidth={1.8} />
@@ -96,7 +127,7 @@ export default function WhatsApp({ chat, items, byId, onTap }) {
           <span className="wa-mic"><Mic size={22} strokeWidth={2} /></span>
         </div>
       )}
-      <Keyboard chat={chat} android />
+      <Keyboard chat={chat} android={!ios} />
     </div>
   );
 }

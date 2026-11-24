@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, SlidersHorizontal, Download, Send, Plus, Moon, Sun, ChevronUp, ChevronDown, Trash2, Copy, Undo2, Redo2, Play,
   Clock3, MoreHorizontal, Eraser, ArrowLeftRight, Camera, ImageOff, Share2, Film, Check, Image as ImageIcon, Mic, Phone, Ban,
-  Type, Info, BellDot, FileText, Reply, X, Users, UserPlus, ClipboardCopy, Frame, MapPin, Sticker, Contact, BookmarkPlus
+  Type, Info, BellDot, FileText, Reply, X, Users, UserPlus, ClipboardCopy, Frame, MapPin, Sticker, Contact, BookmarkPlus, List, MoreVertical, ChevronDown as Caret, Minus, LayoutGrid
 } from 'lucide-react';
 import { useStore, TEMPLATES, uid, addMinutes, PCOLORS } from '../store.js';
 import { Sheet, Seg, Switch, toast, useBack } from '../components/ui.jsx';
-import Shot from '../templates/Shot.jsx';
+import Shot, { FRAMES } from '../templates/Shot.jsx';
+import TplGrid, { TplIcon } from '../components/TplGrid.jsx';
 import Player from './Player.jsx';
 import { to12, LABELS, quoteText } from '../templates/parts.jsx';
 import { renderPng, savePng, sharePngs, fileBase, frame916, FRAME_BGS } from '../exporter.js';
@@ -21,6 +22,13 @@ const statusOpts = [['sent', 'Terkirim'], ['delivered', 'Diterima'], ['read', 'D
 const REACTS = ['❤️', '😂', '😮', '😢', '🙏', '👍', '🔥', '💀'];
 const TYPES = [['text', 'Teks', Type], ['image', 'Foto', ImageIcon], ['sticker', 'Stiker', Sticker], ['voice', 'Suara', Mic], ['call', 'Telepon', Phone], ['location', 'Lokasi', MapPin], ['contact', 'Kontak', Contact], ['deleted', 'Dihapus', Ban]];
 const CALLS = [['missed-voice', 'Tak terjawab'], ['missed-video', 'Video tak terjawab'], ['voice', 'Suara'], ['video', 'Video']];
+const SIZES = [
+  ['916', 'TikTok', 'TikTok / Reels / Shorts', '9:16 · 1080×1920', [18, 32]],
+  ['45', 'IG 4:5', 'Instagram feed', '4:5 · 1080×1350', [22, 27]],
+  ['11', 'Kotak', 'Kotak', '1:1 · 1080×1080', [24, 24]],
+  ['phone', 'Layar HP', 'Layar HP penuh', 'Seperti screenshot asli', [15, 32]],
+  ['auto', 'Panjang', 'Panjang (semua pesan)', 'Tinggi mengikuti isi chat', [14, 34]]
+];
 const WALL_COLORS = ['#0b141a', '#1b2b34', '#3b2a4d', '#1f3b2c', '#efeae2', '#d9e7f2', '#fde2e4', '#fff3c4'];
 
 async function copyText(text) {
@@ -75,7 +83,8 @@ export default function Editor({ id, onClose }) {
   if (!chat) return null;
   const up = (fn, rec) => updateChat(id, fn, rec);
   const msgs = chat.messages;
-  const scale = phone ? Math.min((box.w - 28) / 390, (box.h - 20) / 844) : Math.min((box.w - 28) / 390, 1);
+  const frameH = FRAMES[chat.frame || 'phone'] || 844;
+  const scale = phone ? Math.min((box.w - 16) / 390, (box.h - 12) / frameH) : Math.min((box.w - 16) / 390, 1);
   const L = LABELS[chat.template] || LABELS.imessage;
   const sideFrom = side === 'me' ? 'me' : 'them';
   const sideSender = chat.group && side !== 'me' ? side : undefined;
@@ -139,7 +148,9 @@ export default function Editor({ id, onClose }) {
   const shoot = async upto => {
     setOffUpto(upto);
     await waitFrames();
-    const png = await renderPng(offRef.current, settings.exportScale, chat.template);
+    const fixed = ['916', '45', '11'].includes(chat.frame);
+    const OUT = { '916': [1080, 1920], '45': [1080, 1350], '11': [1080, 1080] };
+    const png = await renderPng(offRef.current, fixed ? 1080 / 390 : settings.exportScale, chat.template, fixed ? OUT[chat.frame] : null);
     return settings.frame916 ? frame916(png, settings.frameBg) : png;
   };
   const doExport = async mode => {
@@ -181,41 +192,25 @@ export default function Editor({ id, onClose }) {
     <>
       <div className="ed-top">
         <button className="icon-btn press" onClick={() => { fx.tap(); onClose(); }} aria-label="Kembali"><ArrowLeft size={24} /></button>
-        <button className="ed-title press" onClick={() => { fx.tap(); setSheet('settings'); }}>{chat.title}</button>
+        <button className="ed-tpl press" onClick={() => { fx.tap(); setSheet('settings'); }}>
+          <TplIcon k={chat.template} size={30} /><span className="t">{chat.title}</span>
+        </button>
         <button className="icon-btn press" disabled={!canUndo(id)} onClick={() => { fx.tap(); undo(id); }} aria-label="Urungkan"><Undo2 size={20} /></button>
         <button className="icon-btn press" disabled={!canRedo(id)} onClick={() => { fx.tap(); redo(id); }} aria-label="Ulangi"><Redo2 size={20} /></button>
-        <button className="icon-btn tinted press" onClick={() => { fx.tap(); setSheet('settings'); }} aria-label="Atur chat"><SlidersHorizontal size={20} /></button>
-        <button className="ed-export press" onClick={() => { fx.tap(); setSheet('export'); }}><Download size={18} /> Simpan</button>
-      </div>
-
-      <div className="chips">
-        <button className="chip press" style={{ '--c': '#ffc145' }} onClick={() => { fx.toggle(); up(c => ({ ...c, dark: !c.dark })); }}>
-          {chat.dark ? <Moon size={15} /> : <Sun size={15} />}{chat.dark ? 'Gelap' : 'Terang'}
-        </button>
-        {Object.entries(TEMPLATES).map(([k, t]) => (
-          <button key={k} className={'chip press' + (chat.template === k ? ' on' : '')} style={{ '--c': t.color }}
-            onClick={() => { fx.toggle(); up(c => ({ ...c, template: k, messages: c.messages.map(m => (m.kind === 'time' && isAutoLabel(m.text, c.clock) ? { ...m, text: timeLabel(k, c.clock) } : m)) })); }}>
-            <i />{t.label}
-          </button>
-        ))}
-      </div>
-      <div style={{ padding: '0 14px 8px', display: 'flex', gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <Seg value={view} onChange={setView} options={[['preview', 'Pratinjau'], ['list', `Daftar (${msgs.length})`]]} />
-        </div>
-        <button className="btn ghost press" style={{ height: 40, padding: '0 14px', fontSize: 13 }} disabled={!msgs.length}
-          onClick={() => { fx.tap(); setPlaying(true); }}><Play size={16} fill="currentColor" /> Putar</button>
+        <button className={'icon-btn press' + (view === 'list' ? ' tinted' : '')} onClick={() => { fx.toggle(); setView(v => (v === 'list' ? 'preview' : 'list')); }} aria-label="Daftar pesan">{view === 'list' ? <LayoutGrid size={20} /> : <List size={21} />}</button>
+        <button className="icon-btn tinted press" onClick={() => { fx.tap(); setSheet('settings'); }} aria-label="Pengaturan"><SlidersHorizontal size={20} /></button>
+        <button className="icon-btn press" onClick={() => { fx.tap(); setSheet('export'); }} aria-label="Lainnya"><MoreVertical size={21} /></button>
       </div>
 
       {view === 'preview' ? (
-        <div className={'stage' + (phone ? '' : ' scrolly')} ref={stageRef}>
-          <div style={{ width: 390 * scale, height: shotH * scale, margin: '4px auto 14px', flexShrink: 0 }}>
+        <div className={'stage pov' + (phone ? '' : ' scrolly')} ref={stageRef}>
+          <div style={{ width: 390 * scale, height: shotH * scale, margin: '2px auto 90px', flexShrink: 0 }}>
             <motion.div className="stage-inner frame" style={{ width: 390, transform: `scale(${scale})`, transformOrigin: 'top left' }}
               key={chat.template} initial={{ opacity: 0.4 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
               <Shot ref={shotRef} chat={chat} onTap={openEdit} />
             </motion.div>
           </div>
-          {msgs.length < 4 && <div className="hint">{msgs.length ? 'Ketuk gelembung untuk mengedit' : 'Tulis pesan pertama di bawah ↓'}</div>}
+          {msgs.length < 4 && <div className="hint" style={{ bottom: 'auto', top: 10 }}>{msgs.length ? 'Ketuk gelembung untuk mengedit' : 'Tulis pesan pertama di bawah ↓'}</div>}
         </div>
       ) : (
         <div className="scroll list" ref={stageRef}>
@@ -236,6 +231,16 @@ export default function Editor({ id, onClose }) {
               </motion.div>
             );
           })}
+        </div>
+      )}
+
+      {view === 'preview' && (
+        <div className="pov-fabs">
+          <button className="pov-save press" onClick={() => { fx.tap(); doExport('save'); }} aria-label="Simpan" disabled={!!busy}>
+            {busy ? <span className="spin" /> : <Download size={28} strokeWidth={2.2} />}
+          </button>
+          <button className="pov-size press" onClick={() => { fx.tap(); setSheet('size'); }}>{(SIZES.find(x => x[0] === (chat.frame || 'phone')) || SIZES[3])[1]}<Caret size={18} /></button>
+          <button className="pov-play press" disabled={!msgs.length} onClick={() => { fx.tap(); setPlaying(true); }} aria-label="Putar"><Play size={20} fill="currentColor" /></button>
         </div>
       )}
 
@@ -435,8 +440,80 @@ export default function Editor({ id, onClose }) {
         )}
       </Sheet>
 
+      {/* size */}
+      <Sheet open={sheet === 'size'} onClose={() => setSheet(null)} title="Ukuran POV">
+        {SIZES.map(([v, , name, sub, [w, h]]) => (
+          <button key={v} className={'size-opt press' + ((chat.frame || 'phone') === v ? ' on' : '')} onClick={() => { fx.toggle(); up(c => ({ ...c, frame: v })); setSheet(null); }}>
+            <span className="size-box"><i style={{ width: w, height: h }} /></span>
+            <span style={{ flex: 1 }}><b>{name}</b><small>{sub}</small></span>
+            {(chat.frame || 'phone') === v && <Check size={20} />}
+          </button>
+        ))}
+      </Sheet>
+
       {/* chat settings */}
-      <Sheet open={sheet === 'settings'} onClose={() => setSheet(null)} title="Atur chat">
+      <Sheet open={sheet === 'settings'} onClose={() => setSheet(null)} title="Pengaturan">
+        <TplGrid value={chat.template} onPick={k => up(c => ({ ...c, template: k, messages: c.messages.map(m => (m.kind === 'time' && isAutoLabel(m.text, c.clock) ? { ...m, text: timeLabel(k, c.clock) } : m)) }))} />
+        <div className="ref">
+          <Seg value={chat.dark ? 'dark' : 'light'} onChange={v => up(c => ({ ...c, dark: v === 'dark' }))} options={[['light', 'Mode terang'], ['dark', 'Mode gelap']]} />
+          {chat.template === 'whatsapp' && <Seg value={chat.waStyle || 'android'} onChange={v => up(c => ({ ...c, waStyle: v }))} options={[['ios', 'WA iPhone'], ['android', 'WA Android']]} />}
+        </div>
+        <div className="ref ref-row">
+          <span className="ref-lbl">{chat.template === 'lock' ? 'Jam layar kunci' : 'Jam sekarang'}</span>
+          <input className="ref-val" type="time" value={chat.clock} onChange={e => up(c => ({ ...c, clock: e.target.value || c.clock }))} />
+        </div>
+        <div className="ref">
+          <span className="ref-lbl">Gaya teks</span>
+          <Seg value={chat.textStyle || 'normal'} onChange={v => up(c => ({ ...c, textStyle: v }))} options={[['normal', 'Normal'], ['bold', 'Tebal'], ['italic', 'Miring'], ['bolditalic', 'Tebal miring']]} />
+        </div>
+        <div className="ref">
+          <span className="ref-lbl">Ketebalan gelembung</span>
+          <Seg value={chat.bubble || 'original'} onChange={v => up(c => ({ ...c, bubble: v }))} options={[['thin', 'Tipis'], ['original', 'Original'], ['thick', 'Tebal']]} />
+        </div>
+        <div className="ref">
+          <input className="ref-in" inputMode="numeric" placeholder="Pesan belum dibaca" value={chat.contact.unread}
+            onChange={e => up(c => ({ ...c, contact: { ...c.contact, unread: e.target.value.replace(/\D/g, '').slice(0, 4) } }))} />
+        </div>
+        <div className="ref ref-row">
+          <input className="ref-in" style={{ flex: 1 }} placeholder="Status obrolan" disabled={chat.statusDefault} value={chat.statusDefault ? '' : chat.contact.status}
+            onChange={e => up(c => ({ ...c, contact: { ...c.contact, status: e.target.value } }))} />
+          <button className={'chk press' + (chat.statusDefault ? ' on' : '')} onClick={() => { fx.toggle(); up(c => ({ ...c, statusDefault: !c.statusDefault })); }}>
+            <i>{chat.statusDefault && <Check size={16} strokeWidth={3} />}</i>Gunakan<br />default
+          </button>
+        </div>
+        <div className="ref ref-row">
+          <span className="ref-lbl">Bilah status baru</span>
+          <Switch on={chat.sbStyle === 'ios' || (chat.sbStyle !== 'android' && !['whatsapp', 'telegram', 'sms', 'line', 'kakao'].includes(chat.template)) || (chat.sbStyle !== 'android' && chat.template === 'whatsapp' && chat.waStyle === 'ios')}
+            onChange={v => up(c => ({ ...c, sbStyle: v ? 'ios' : 'android' }))} />
+        </div>
+        <div className="ref">
+          <span className="ref-lbl">Wallpaper</span>
+          <div className="wp-tiles">
+            <button className={'wp-tile press' + (chat.wallpaper.type !== 'image' ? ' on' : '')} onClick={() => { fx.tap(); up(c => ({ ...c, wallpaper: { type: 'default', value: '' } })); }}>Gunakan default</button>
+            <button className={'wp-tile photo press' + (chat.wallpaper.type === 'image' ? ' on' : '')} style={chat.wallpaper.type === 'image' ? { backgroundImage: `url("${mediaUrl(chat.wallpaper.value)}")` } : null}
+              onClick={async () => { const f = await pickFile(); if (!f) return; try { const ref = await putImage(await fileToDataUrl(f, 1400)); up(c => ({ ...c, wallpaper: { type: 'image', value: ref } })); fx.success(); } catch { fx.error(); } }}>
+              <span className="plus"><Plus size={18} /></span>Foto Anda
+            </button>
+          </div>
+          {['whatsapp', 'telegram', 'lock', 'line', 'kakao'].includes(chat.template) && (
+            <div className="swatches" style={{ marginTop: 12 }}>
+              {WALL_COLORS.map(col => (
+                <button key={col} className={'sw press' + (chat.wallpaper.type === 'color' && chat.wallpaper.value === col ? ' on' : '')} style={{ background: col, outline: '1px solid var(--line)' }}
+                  onClick={() => { fx.tap(); up(c => ({ ...c, wallpaper: { type: 'color', value: col } })); }} aria-label={col} />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="ref">
+          <span className="ref-lbl">Ukuran teks</span>
+          <div className="stepper">
+            <button className="press" onClick={() => { fx.tap(); up(c => ({ ...c, textScale: Math.max(0.82, +((c.textScale || 1) - 0.06).toFixed(2)) })); }} aria-label="Kecilkan"><Minus size={26} /></button>
+            <b>{Math.round(((chat.textScale || 1) - 1) / 0.06)}</b>
+            <button className="press" onClick={() => { fx.tap(); up(c => ({ ...c, textScale: Math.min(1.36, +((c.textScale || 1) + 0.06).toFixed(2)) })); }} aria-label="Besarkan"><Plus size={26} /></button>
+          </div>
+        </div>
+
+        <div className="sheet-sec">Profil</div>
         <div className="field">
           <label>Judul (hanya di aplikasi)</label>
           <input className="input" value={chat.title} onChange={e => up(c => ({ ...c, title: e.target.value }))} />
@@ -459,7 +536,22 @@ export default function Editor({ id, onClose }) {
           <label>{chat.group ? 'Nama grup' : 'Nama kontak'}</label>
           <input className="input" value={chat.contact.name} onChange={e => up(c => ({ ...c, contact: { ...c.contact, name: e.target.value } }))} />
         </div>
-
+        {['x', 'instagram'].includes(chat.template) && (
+          <div className="field">
+            <label>Username</label>
+            <input className="input" value={chat.contact.handle} onChange={e => up(c => ({ ...c, contact: { ...c.contact, handle: e.target.value.startsWith('@') ? e.target.value : '@' + e.target.value } }))} />
+          </div>
+        )}
+        {chat.template === 'imessage' && (
+          <div className="field">
+            <label>Warna gelembung aku</label>
+            <div className="swatches">
+              {['#0a84ff', '#30d158', '#bf5af2', '#ff375f', '#ff9f0a', '#5e5ce6'].map(col => (
+                <button key={col} className={'sw press' + (chat.meColor === col ? ' on' : '')} style={{ background: col }} onClick={() => { fx.tap(); up(c => ({ ...c, meColor: col })); }} aria-label={col} />
+              ))}
+            </div>
+          </div>
+        )}
         <div className="card group" style={{ boxShadow: 'none', background: 'var(--surface2)' }}>
           <div className="row"><span className="lbl">Chat grup<small>Banyak anggota dengan nama berwarna</small></span>
             <Switch on={chat.group} onChange={v => up(c => ({ ...c, group: v, participants: v && !c.participants.length ? [{ id: uid(), name: c.contact.name && c.contact.name !== 'Unknown' ? c.contact.name : 'Dimas', color: PCOLORS[0], avatar: null }, { id: uid(), name: 'Sari', color: PCOLORS[2], avatar: null }] : c.participants }))} /></div>
@@ -481,53 +573,7 @@ export default function Editor({ id, onClose }) {
           </div>
         )}
 
-        {['whatsapp', 'telegram', 'instagram'].includes(chat.template) && (
-          <div className="field" style={{ marginTop: 12 }}>
-            <label>{chat.group ? 'Teks di bawah nama grup' : 'Status di bawah nama'}</label>
-            <input className="input" value={chat.contact.status} placeholder={chat.template === 'instagram' ? 'online = "Active now"' : 'online / terakhir dilihat hari ini 19.30'}
-              onChange={e => up(c => ({ ...c, contact: { ...c.contact, status: e.target.value } }))} />
-          </div>
-        )}
-        {['x', 'instagram'].includes(chat.template) && (
-          <div className="field">
-            <label>Username</label>
-            <input className="input" value={chat.contact.handle} onChange={e => up(c => ({ ...c, contact: { ...c.contact, handle: e.target.value.startsWith('@') ? e.target.value : '@' + e.target.value } }))} />
-          </div>
-        )}
-        {chat.template === 'imessage' && (
-          <>
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Angka di tombol kembali (pesan belum dibaca)</label>
-              <input className="input" inputMode="numeric" value={chat.contact.unread} onChange={e => up(c => ({ ...c, contact: { ...c.contact, unread: e.target.value.replace(/\D/g, '').slice(0, 4) } }))} />
-            </div>
-            <div className="field">
-              <label>Warna gelembung aku</label>
-              <div className="swatches">
-                {['#0a84ff', '#30d158', '#bf5af2', '#ff375f', '#ff9f0a', '#5e5ce6'].map(col => (
-                  <button key={col} className={'sw press' + (chat.meColor === col ? ' on' : '')} style={{ background: col }} onClick={() => { fx.tap(); up(c => ({ ...c, meColor: col })); }} aria-label={col} />
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-        {['whatsapp', 'telegram'].includes(chat.template) && (
-          <div className="field">
-            <label>Wallpaper chat</label>
-            <div className="swatches">
-              <button className={'sw press' + (chat.wallpaper.type === 'default' ? ' on' : '')} style={{ background: 'conic-gradient(#25d366,#2aabee,#ffc145,#25d366)' }}
-                onClick={() => { fx.tap(); up(c => ({ ...c, wallpaper: { type: 'default', value: '' } })); }} aria-label="Bawaan" />
-              {WALL_COLORS.map(col => (
-                <button key={col} className={'sw press' + (chat.wallpaper.type === 'color' && chat.wallpaper.value === col ? ' on' : '')} style={{ background: col, outline: '1px solid var(--line)' }}
-                  onClick={() => { fx.tap(); up(c => ({ ...c, wallpaper: { type: 'color', value: col } })); }} aria-label={col} />
-              ))}
-              <button className={'sw press' + (chat.wallpaper.type === 'image' ? ' on' : '')} style={{ background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Foto"
-                onClick={async () => { const f = await pickFile(); if (!f) return; try { const ref = await putImage(await fileToDataUrl(f, 1200)); up(c => ({ ...c, wallpaper: { type: 'image', value: ref } })); fx.success(); } catch { fx.error(); } }}>
-                <ImageIcon size={18} />
-              </button>
-            </div>
-          </div>
-        )}
-
+        <div className="sheet-sec">Lainnya</div>
         {chat.template === 'lock' && (
           <div className="grid2">
             <div className="field"><label>Nama aplikasi di notifikasi</label><input className="input" value={chat.lockApp} onChange={e => up(c => ({ ...c, lockApp: e.target.value.slice(0, 20) }))} /></div>
@@ -535,21 +581,6 @@ export default function Editor({ id, onClose }) {
               <div className="swatches">{['#34c759', '#0a84ff', '#2aabee', '#e1306c', '#ff9f0a'].map(col => (
                 <button key={col} className={'sw press' + (chat.lockColor === col ? ' on' : '')} style={{ background: col, width: 30, height: 30 }} onClick={() => { fx.tap(); up(c => ({ ...c, lockColor: col })); }} aria-label={col} />))}
               </div>
-            </div>
-          </div>
-        )}
-        {chat.template === 'lock' && (
-          <div className="field">
-            <label>Wallpaper layar kunci</label>
-            <div className="swatches">
-              <button className={'sw press' + (chat.wallpaper.type === 'default' ? ' on' : '')} style={{ background: 'linear-gradient(135deg,#4b3ca8,#07070f)' }} onClick={() => { fx.tap(); up(c => ({ ...c, wallpaper: { type: 'default', value: '' } })); }} aria-label="Bawaan" />
-              {['#1b2b34', '#3b2a4d', '#7a1f3d', '#0f3d3e'].map(col => (
-                <button key={col} className={'sw press' + (chat.wallpaper.type === 'color' && chat.wallpaper.value === col ? ' on' : '')} style={{ background: col }} onClick={() => { fx.tap(); up(c => ({ ...c, wallpaper: { type: 'color', value: col } })); }} aria-label={col} />
-              ))}
-              <button className={'sw press' + (chat.wallpaper.type === 'image' ? ' on' : '')} style={{ background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Foto"
-                onClick={async () => { const f = await pickFile(); if (!f) return; try { const ref = await putImage(await fileToDataUrl(f, 1400)); up(c => ({ ...c, wallpaper: { type: 'image', value: ref } })); fx.success(); } catch { fx.error(); } }}>
-                <ImageIcon size={18} />
-              </button>
             </div>
           </div>
         )}
@@ -574,33 +605,14 @@ export default function Editor({ id, onClose }) {
                   <div className="field"><label>Waktu</label><input className="input" value={chat.notif.when} onChange={e => up(c => ({ ...c, notif: { ...c.notif, when: e.target.value.slice(0, 14) } }))} /></div>
                 </div>
                 <div className="field"><label>Isi notifikasi (kosong = pesan terakhir dia)</label><input className="input" value={chat.notif.text} onChange={e => up(c => ({ ...c, notif: { ...c.notif, text: e.target.value } }))} /></div>
-                <div className="field"><label>Warna ikon notifikasi</label>
-                  <div className="swatches">{['#34c759', '#0a84ff', '#2aabee', '#e1306c', '#ff9f0a', '#8e8e93'].map(col => (
-                    <button key={col} className={'sw press' + (chat.notif.color === col ? ' on' : '')} style={{ background: col }} onClick={() => { fx.tap(); up(c => ({ ...c, notif: { ...c.notif, color: col } })); }} aria-label={col} />))}
-                  </div>
-                </div>
               </>
             )}
           </>
         )}
-        <div className="grid2" style={{ marginTop: 6 }}>
-          <div className="field">
-            <label>Jam di status bar</label>
-            <input className="input" type="time" value={chat.clock} onChange={e => up(c => ({ ...c, clock: e.target.value || c.clock }))} />
-          </div>
-          <div className="field">
-            <label>Baterai: {chat.battery ?? 76}%</label>
-            <input type="range" min="1" max="100" value={chat.battery ?? 76} style={{ width: '100%', height: 48, accentColor: tplColor }}
-              onChange={e => up(c => ({ ...c, battery: +e.target.value }))} />
-          </div>
-        </div>
         <div className="field">
-          <label>Ukuran teks pesan</label>
-          <Seg value={chat.textScale || 1} onChange={v => up(c => ({ ...c, textScale: v }))} options={[[0.9, 'Kecil'], [1, 'Normal'], [1.12, 'Besar'], [1.25, 'Jumbo']]} />
-        </div>
-        <div className="field">
-          <label>Ukuran gambar</label>
-          <Seg value={chat.frame || 'phone'} onChange={v => up(c => ({ ...c, frame: v }))} options={[['phone', 'Layar HP (pas)'], ['auto', 'Panjang (semua pesan)']]} />
+          <label>Baterai: {chat.battery ?? 76}%</label>
+          <input type="range" min="1" max="100" value={chat.battery ?? 76} style={{ width: '100%', height: 40, accentColor: tplColor }}
+            onChange={e => up(c => ({ ...c, battery: +e.target.value }))} />
         </div>
         <div className="field">
           <label>Watermark (kosongkan untuk mematikan)</label>
@@ -616,7 +628,7 @@ export default function Editor({ id, onClose }) {
       </Sheet>
 
       {/* export */}
-      <Sheet open={sheet === 'export'} onClose={() => !busy && setSheet(null)} title="Simpan gambar">
+      <Sheet open={sheet === 'export'} onClose={() => !busy && setSheet(null)} title="Simpan & lainnya">
         {busy ? (
           <div style={{ padding: '6px 0 20px' }}>
             <b>{busy.label}</b>

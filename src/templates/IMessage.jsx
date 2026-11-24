@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Video, Plus, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
 
 const CLS = { time: 'im-time', system: 'im-time', unread: 'im-unread' };
 
@@ -10,7 +10,7 @@ export default function IMessage({ chat, items, byId, onTap }) {
   return (
     <div className={'shot im ' + (dark ? 'dark' : 'light')} style={{ '--me': chat.meColor || '#0a84ff', '--ts': chat.textScale || 1 }}>
       <div className="im-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
+        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#000'} />}
         <div className="im-head-row">
           <div className="im-back">
             <ChevronLeft size={34} strokeWidth={2.4} />

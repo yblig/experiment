@@ -1,5 +1,5 @@
 import { ArrowLeft, Phone, Video, MoreVertical, PlusCircle, Smile, Image, Mic } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified, PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
 
 const CLS = { time: 'sm-time', system: 'sm-time', unread: 'sm-unread' };
 const ST = { sent: 'Terkirim', delivered: 'Terkirim', read: 'Dibaca' };
@@ -11,7 +11,7 @@ export default function Sms({ chat, items, byId, onTap }) {
   return (
     <div className={'shot sm ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="sm-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#e3e2e6' : '#1b1b1f'} android />}
+        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, true)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#e3e2e6' : '#1b1b1f'} />}
         <div className="sm-head-row">
           <ArrowLeft size={24} strokeWidth={2} />
           <Avatar contact={chat.contact} size={38} flat />

@@ -1,5 +1,5 @@
 import { ArrowLeft, Info, Image, Smile, SendHorizontal } from 'lucide-react';
-import { Avatar, StatusBar, groupInfo, Dots, to12, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard } from './parts.jsx';
+import { Avatar, StatusBar, groupInfo, Dots, to12, Content, Reaction, NonBubble, bigEmoji, typeOf, senderOf, Verified , PinBar, Draft, Keyboard , sbAndroid } from './parts.jsx';
 
 const CLS = { time: 'xd-time', system: 'xd-time', unread: 'xd-unread' };
 
@@ -11,7 +11,7 @@ export default function XDM({ chat, items, byId, onTap }) {
   return (
     <div className={'shot xd ' + (dark ? 'dark' : 'light')} style={{ '--ts': chat.textScale || 1 }}>
       <div className="xd-head">
-        {chat.showStatusBar !== false && <StatusBar time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#0f1419'} />}
+        {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time={chat.clock} battery={chat.battery} charging={chat.charging} color={dark ? '#fff' : '#0f1419'} />}
         <div className="xd-head-row">
           <ArrowLeft size={22} strokeWidth={2.2} />
           <Avatar contact={chat.contact} size={34} flat />

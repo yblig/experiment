@@ -16,11 +16,16 @@ export const addMinutes = (t, n) => {
 };
 
 export const TEMPLATES = {
-  imessage: { label: 'iMessage', color: '#0a84ff', note: 'Gelembung biru/hijau' },
-  whatsapp: { label: 'WhatsApp', color: '#25d366', note: 'Centang & wallpaper' },
-  telegram: { label: 'Telegram', color: '#2aabee', note: 'Wallpaper gradasi' },
-  instagram: { label: 'Instagram', color: '#e1306c', note: 'DM gaya IG' },
+  snapchat: { label: 'Snapchat', color: '#f5c400', note: 'Tanpa gelembung' },
+  line: { label: 'LINE', color: '#06c755', note: 'Jam di samping' },
   x: { label: 'X / Twitter', color: '#1d9bf0', note: 'DM gaya X' },
+  imessage: { label: 'iMessage', color: '#0a84ff', note: 'Gelembung biru/hijau' },
+  telegram: { label: 'Telegram', color: '#2aabee', note: 'Wallpaper gradasi' },
+  tinder: { label: 'Tinder', color: '#fd5068', note: 'Chat match' },
+  instagram: { label: 'Instagram', color: '#e1306c', note: 'DM gaya IG' },
+  messenger: { label: 'Messenger', color: '#0a7cff', note: 'Gradasi biru-ungu' },
+  whatsapp: { label: 'WhatsApp', color: '#25d366', note: 'Android / iPhone' },
+  kakao: { label: 'KakaoTalk', color: '#e6c800', note: 'Gelembung kuning' },
   sms: { label: 'SMS Android', color: '#4c8df6', note: 'Gaya Material' },
   lock: { label: 'Layar Kunci', color: '#ff9f0a', note: 'Notifikasi di lock screen' }
 };
@@ -31,7 +36,8 @@ const DEFAULTS = {
   title: 'Chat baru', dark: true, meColor: '#0a84ff', battery: 76, showStatusBar: true, showInput: true, frame: 'phone',
   group: false, participants: [], wallpaper: { type: 'default', value: '' }, verified: false, textScale: 1,
   watermark: '', charging: false, autoTime: false, pinned: false,
-  notif: { on: false, from: '', text: '', when: 'sekarang', color: '#34c759' }, keyboard: false, draft: '', pinnedText: '', lockApp: 'Pesan', lockColor: '#34c759'
+  notif: { on: false, from: '', text: '', when: 'sekarang', color: '#34c759' }, keyboard: false, draft: '', pinnedText: '', lockApp: 'Pesan', lockColor: '#34c759',
+  waStyle: 'android', textStyle: 'normal', bubble: 'original', statusDefault: false, sbStyle: 'auto'
 };
 
 export function normalize(c) {
@@ -40,7 +46,7 @@ export function normalize(c) {
 }
 
 export function blankChat(template = 'imessage') {
-  return normalize({ id: uid(), template, clock: nowClock(), messages: [], updatedAt: Date.now() });
+  return normalize({ id: uid(), template, clock: nowClock(), waStyle: 'ios', messages: [], updatedAt: Date.now() });
 }
 
 const defaults = { theme: 'system', sound: true, haptics: true, defaultTemplate: 'imessage', exportScale: 3, frameBg: 0 };

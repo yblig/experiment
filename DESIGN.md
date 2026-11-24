@@ -41,3 +41,10 @@ on-screen keyboard + draft text, custom wallpaper, verified badge, text size, wa
 Editor: undo/redo, script import (`Aku:` / `Nama:` / `---` / `*`), auto time, Play mode (screen recording),
 9:16 frame export, copy as text, save as "Preset saya". Home: search, pin. Presets: random story, 14 stories.
 Settings: backup/restore JSON (photos embedded). Photos stored as files in app data (`media/`).
+
+## v1.2 (reference-style UI)
+Chat settings follow the user's reference: round app grid (original icons, no logos) → Current time,
+Text style, Bubble thickness, Unread count, Chat status + "Gunakan default", New status bar (iOS/Android),
+Wallpaper tiles (default / your photo), Text size stepper. Editor is a full-height POV with a floating
+Save button, POV size picker (TikTok 9:16 1080×1920, IG 4:5, 1:1, phone, long) and Play.
+New templates: WhatsApp iPhone style, LINE, Messenger, Snapchat, Tinder, KakaoTalk (12 total).

@@ -1,6 +1,6 @@
 // Lock screen: big clock + date, incoming messages stacked as notifications (newest on top).
 import { MessageCircle, Flashlight, Camera } from 'lucide-react';
-import { StatusBar, senderOf, quoteText, typeOf } from './parts.jsx';
+import { StatusBar, senderOf, quoteText, typeOf , sbAndroid } from './parts.jsx';
 import { mediaUrl } from '../media.js';
 
 const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -28,7 +28,7 @@ export default function Lock({ chat, items, onTap }) {
   const appName = chat.lockApp || 'Pesan';
   return (
     <div className="shot lk" style={{ ...bg, '--ts': chat.textScale || 1 }}>
-      {chat.showStatusBar !== false && <StatusBar time="" battery={chat.battery} charging={chat.charging} color="#fff" />}
+      {chat.showStatusBar !== false && <StatusBar android={sbAndroid(chat, false)} time="" battery={chat.battery} charging={chat.charging} color="#fff" />}
       <div className="lk-date">{date}</div>
       <div className="lk-clock">{(chat.clock || '00:00').replace(':', '.')}</div>
       <div className="msgs lk-list">
