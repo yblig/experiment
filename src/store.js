@@ -49,7 +49,7 @@ export function blankChat(template = 'imessage') {
   return normalize({ id: uid(), template, clock: nowClock(), waStyle: 'ios', messages: [], updatedAt: Date.now() });
 }
 
-const defaults = { theme: 'system', sound: true, haptics: true, defaultTemplate: 'imessage', exportScale: 3, frameBg: 0 };
+const defaults = { lang: 'id', theme: 'system', sound: true, haptics: true, defaultTemplate: 'imessage', exportScale: 3, frameBg: 0 };
 
 // --- undo / redo (per chat, in memory) ---
 const hist = new Map();

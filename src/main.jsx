@@ -15,6 +15,7 @@ import { native } from './lib/native.js';
 import { useStore } from './store.js';
 import { loadSounds } from './fx.js';
 import { initMedia } from './media.js';
+import { setLang } from './i18n.js';
 import { toast } from './components/ui.jsx';
 import App from './App.jsx';
 
@@ -28,5 +29,6 @@ import App from './App.jsx';
   import('./chatSounds.js').then(m => { window.__snd = m; });
   createRoot(document.getElementById('app')).render(<App />);
   loadSounds();
-  requestAnimationFrame(() => native.hideSplash());
+  requestAnimationFrame(() => { setLang(useStore.getState().settings.lang); native.hideSplash(); });
+  useStore.subscribe((st, prev) => { if (st.settings.lang !== prev.settings.lang) setLang(st.settings.lang); });
 })();

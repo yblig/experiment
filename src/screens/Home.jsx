@@ -92,7 +92,7 @@ export default function Home({ onOpen, onNew, goPresets }) {
               <input value={q} onChange={e => setQ(e.target.value)} placeholder="Cari judul, nama, atau isi chat" />
               {q && <button onClick={() => { fx.tap(); setQ(''); }} aria-label="Hapus pencarian"><X size={18} /></button>}
             </label>
-            <div className="section-title">{needle ? 'Hasil pencarian' : 'Chat kamu'} <small>{list.length} chat</small></div>
+            <div className="section-title">{needle ? 'Hasil pencarian' : 'Chat kamu'} <small>{`${list.length} chat`}</small></div>
             {needle && !list.length && <p className="note" style={{ textAlign: 'center', padding: 20 }}>Nggak ada chat yang cocok dengan "{q}".</p>}
             {list.map((c, i) => {
               const t = TEMPLATES[c.template] || TEMPLATES.imessage;
@@ -105,7 +105,7 @@ export default function Home({ onOpen, onNew, goPresets }) {
                       {c.pinned && <Pin size={14} className="pin-ic" style={{ marginLeft: 6, verticalAlign: -2 }} />}
                       <h3>{c.title}</h3>
                       <p>{lastLine(c)}</p>
-                      <div className="when"><Clock size={12} /> {ago(c.updatedAt)} · {c.messages.filter(m => m.kind === 'msg').length} pesan</div>
+                      <div className="when"><Clock size={12} /> <span>{ago(c.updatedAt)}</span><span>{' · '}</span><span>{`${c.messages.filter(m => m.kind === 'msg').length} pesan`}</span></div>
                     </div>
                     <button className="more-btn press" onClick={e => { e.stopPropagation(); fx.tap(); setMenu(c); }} aria-label="Menu"><MoreVertical size={20} /></button>
                   </div>

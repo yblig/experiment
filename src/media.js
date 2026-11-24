@@ -63,20 +63,20 @@ export async function fileToDataUrl(file, max = 900, square = false) {
   } finally { URL.revokeObjectURL(url); }
 }
 
-export function pickFile(accept = 'image/*') {
+// The input is attached to the page while the Android picker is open; a detached input can be
+// garbage-collected by the WebView before the "change" event arrives, which silently drops the file.
+function openPicker(accept, multiple) {
   return new Promise(resolve => {
     const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = accept;
-    inp.onchange = () => resolve(inp.files?.[0] || null);
+    inp.type = 'file'; inp.accept = accept; inp.multiple = !!multiple;
+    inp.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(inp);
+    window.__picker = inp;
+    inp.addEventListener('change', () => { resolve([...(inp.files || [])]); setTimeout(() => inp.remove(), 1000); }, { once: true });
+    inp.addEventListener('cancel', () => { resolve([]); inp.remove(); }, { once: true });
     inp.click();
   });
 }
+export async function pickFile(accept = 'image/*') { return (await openPicker(accept, false))[0] || null; }
 
-export function pickFiles(accept = '*/*') {
-  return new Promise(resolve => {
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = accept; inp.multiple = true;
-    inp.onchange = () => resolve([...(inp.files || [])]);
-    inp.click();
-  });
-}
+export const pickFiles = (accept = '*/*') => openPicker(accept, true);

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput, Send, BellRing, Play, Music, RotateCcw } from 'lucide-react';
+import { Palette, Volume2, Vibrate, LayoutTemplate, ImageDown, Trash2, Info, DatabaseBackup, FolderInput, Languages, Send, BellRing, Play, Music, RotateCcw } from 'lucide-react';
 import { playChatSound, clearSoundCache } from '../chatSounds.js';
 import { putMedia, fileToRawDataUrl } from '../media.js';
 import { shareTextFile } from '../exporter.js';
 import SoundSheet from './SoundSheet.jsx';
+import { LANGS } from '../i18n.js';
 import { pickFile } from '../media.js';
 
 const EXT = f => (f.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4) || 'mp3';
@@ -55,6 +56,13 @@ export default function Settings() {
       <div className="scroll page-pad">
         <div className="section-title">Tampilan</div>
         <div className="card group">
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <Ic c="#ffa94d"><Languages size={19} /></Ic>
+            <span className="lbl">Bahasa aplikasi<small>Language</small></span>
+            <div style={{ width: '100%' }}>
+              <Seg value={settings.lang || 'id'} onChange={v => setSettings({ lang: v })} options={LANGS} />
+            </div>
+          </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             <Ic c="#7c6cff"><Palette size={19} /></Ic>
             <span className="lbl">Tema aplikasi</span>
@@ -109,14 +117,14 @@ export default function Settings() {
           </button>
           <button className="row press" onClick={() => { fx.tap(); setConfirm(true); }} disabled={!chats.length}>
             <Ic c="#ff6b6b"><Trash2 size={19} /></Ic>
-            <span className="lbl" style={{ color: 'var(--danger)' }}>Hapus semua chat<small>{chats.length} chat tersimpan di HP ini</small></span>
+            <span className="lbl" style={{ color: 'var(--danger)' }}>Hapus semua chat<small>{`${chats.length} chat tersimpan di HP ini`}</small></span>
           </button>
         </div>
 
         <div className="section-title">Tentang</div>
         <div className="card group">
           <div className="row"><Ic c="#9aa0b4"><Info size={19} /></Ic>
-            <span className="lbl">ChatSim 1.5<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
+            <span className="lbl">ChatSim 1.6<small>Semua dibuat & disimpan offline di HP kamu</small></span></div>
         </div>
         <p className="note">ChatSim dibuat untuk cerita fiksi, video, komik, dan meme. Jangan dipakai untuk menipu, memfitnah, atau mengaku-ngaku chat asli orang lain. Template hanya meniru gaya tampilan dan tidak berafiliasi dengan aplikasi mana pun.</p>
       </div>

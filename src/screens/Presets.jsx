@@ -32,7 +32,7 @@ export default function Presets({ onOpen }) {
           <div className="rnd-info">
             <span className="badge" style={{ background: '#ffc14522', color: '#ffc145', alignSelf: 'flex-start' }}><Wand2 size={12} /> Ide acak</span>
             <h3>{rnd.title}</h3>
-            <p>Gaya {TEMPLATES[rnd.template].label} · {rnd.messages.filter(x => x.kind === 'msg').length} pesan</p>
+            <p>{`Gaya ${TEMPLATES[rnd.template].label} · ${rnd.messages.filter(x => x.kind === 'msg').length} pesan`}</p>
             <div className="rnd-btns">
               <motion.button className="btn ghost press" onClick={reroll} animate={{ rotate: spin * 360 }} transition={{ duration: 0.5 }} aria-label="Acak lagi" style={{ width: 50, padding: 0 }}>
                 <Dices size={22} />
@@ -53,7 +53,7 @@ export default function Presets({ onOpen }) {
                     onClick={() => { fx.send(); const id = fromMyPreset(p); toast(`"${p.title}" ditambahkan`); onOpen(id); }}>
                     <div className="pv"><Mini width={158}><Shot chat={{ ...p, frame: 'auto', showInput: false, keyboard: false }} upto={7} /></Mini></div>
                     <h4>{p.title}</h4>
-                    <p>{p.messages.filter(m => m.kind === 'msg').length} pesan</p>
+                    <p>{`${p.messages.filter(m => m.kind === 'msg').length} pesan`}</p>
                     <span className="badge" style={{ background: t.color + '22', color: t.color, margin: '0 4px 4px' }}><i style={{ background: t.color }} />{t.label}</span>
                     <button className="icon-btn press" style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, background: 'rgba(0,0,0,.55)', color: '#fff', zIndex: 2 }}
                       onClick={e => { e.stopPropagation(); fx.del(); deleteMyPreset(p.id); toast('Preset dihapus'); }} aria-label="Hapus preset"><X size={16} /></button>
@@ -64,7 +64,7 @@ export default function Presets({ onOpen }) {
           </>
         )}
 
-        <div className="section-title">Semua preset <small>{PRESETS.length} cerita</small></div>
+        <div className="section-title">Semua preset <small>{`${PRESETS.length} cerita`}</small></div>
         <div className="preset-grid">
           {PRESETS.map((p, i) => {
             const t = TEMPLATES[p.template];

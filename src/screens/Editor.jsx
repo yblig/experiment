@@ -686,7 +686,7 @@ export default function Editor({ id, onClose }) {
           </>
         )}
         <div className="field">
-          <label>Baterai: {chat.battery ?? 76}%</label>
+          <label>{`Baterai: ${chat.battery ?? 76}%`}</label>
           <input type="range" min="1" max="100" value={chat.battery ?? 76} style={{ width: '100%', height: 40, accentColor: tplColor }}
             onChange={e => up(c => ({ ...c, battery: +e.target.value }))} />
         </div>
@@ -729,20 +729,20 @@ export default function Editor({ id, onClose }) {
               </div>
             </div>
             <button className="menu-item press" onClick={() => doExport('save')}><Download size={20} />
-              <span>Simpan ke galeri<br /><small className="note" style={{ padding: 0 }}>1 gambar PNG {settings.frame916 ? 'berbingkai 9:16' : chat.frame === 'auto' ? 'panjang' : 'seukuran layar HP'}</small></span></button>
+              <span>Simpan ke galeri<br /><small className="note" style={{ padding: 0 }}>{`1 gambar PNG ${settings.frame916 ? 'berbingkai 9:16' : chat.frame === 'auto' ? 'panjang' : 'seukuran layar HP'}`}</small></span></button>
             <button className="menu-item press" onClick={() => doExport('share')}><Share2 size={20} />
               <span>Bagikan<br /><small className="note" style={{ padding: 0 }}>Kirim ke WhatsApp, TikTok, CapCut, dll.</small></span></button>
             <button className="menu-item press" onClick={() => { fx.tap(); setVid(v => ({ ...v, result: null })); setSheet('video'); }}><Clapperboard size={20} />
               <span>Ekspor video MP4<br /><small className="note" style={{ padding: 0 }}>Animasi mengetik + suara, 1080×1920, siap TikTok</small></span></button>
             <button className="menu-item press" onClick={() => doExport('steps')}><Film size={20} />
-              <span>Ekspor bertahap untuk video<br /><small className="note" style={{ padding: 0 }}>1 gambar tiap pesan baru ({msgs.filter(m => !['time', 'system', 'unread'].includes(m.kind)).length} gambar)</small></span></button>
+              <span>Ekspor bertahap untuk video<br /><small className="note" style={{ padding: 0 }}>{`1 gambar tiap pesan baru (${msgs.filter(m => !['time', 'system', 'unread'].includes(m.kind)).length} gambar)`}</small></span></button>
             <button className="menu-item press" onClick={() => { setSheet(null); setPlaying(true); fx.tap(); }}><Play size={20} />
               <span>Mode Putar<br /><small className="note" style={{ padding: 0 }}>Pesan muncul satu-satu, tinggal rekam layar</small></span></button>
             <button className="menu-item press" onClick={() => { saveAsPreset(id); fx.success(); toast('Tersimpan di Preset › Preset saya'); }}><BookmarkPlus size={20} />
               <span>Simpan sebagai preset saya<br /><small className="note" style={{ padding: 0 }}>Pakai lagi kapan saja dari tab Preset</small></span></button>
             <button className="menu-item press" onClick={async () => { const ok = await copyText(chatToScript(chat)); ok ? fx.success() : fx.error(); toast(ok ? 'Naskah chat disalin' : 'Gagal menyalin'); }}><ClipboardCopy size={20} />
               <span>Salin sebagai teks<br /><small className="note" style={{ padding: 0 }}>Format naskah, bisa diimpor lagi</small></span></button>
-            <p className="note">Resolusi: {settings.exportScale === 3 ? '1170' : '780'} px lebar. Ubah di Pengaturan.</p>
+            <p className="note">{`Resolusi: ${settings.exportScale === 3 ? '1170' : '780'} px lebar. Ubah di Pengaturan.`}</p>
           </>
         )}
       </Sheet>

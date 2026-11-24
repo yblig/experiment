@@ -61,3 +61,7 @@ editor, Play mode and MP4 export. Settings: replace send/receive sound with the 
 ## v1.5
 Per-template sound slots (settings.tplSounds[tpl].send|recv) with multi-file import that matches by file name;
 leading silence of imported sounds is trimmed. User sound files stay on the phone (not bundled in the repo).
+
+## v1.6
+App language (Indonesia / English) via src/i18n.js: live DOM translation of UI text outside chat screenshots.
+File pickers stay attached to the page while open (Android WebView could drop detached inputs).
