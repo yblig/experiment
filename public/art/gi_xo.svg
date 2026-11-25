@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><defs><linearGradient id="l89" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbc2eb"/><stop offset="1" stop-color="#a18cd1"/></linearGradient><clipPath id="cp90"><rect x="8" y="8" width="184" height="184" rx="40"/></clipPath></defs>
+  <rect x="8" y="14" width="184" height="184" rx="40" fill="#140b2b"/>
+  <rect x="8" y="8" width="184" height="184" rx="40" fill="url(#l89)"/>
+  <g clip-path="url(#cp90)"><path d="M74 20v160M126 20v160M20 74h160M20 126h160" stroke="#140b2b" stroke-width="10" stroke-linecap="round" opacity=".8"/><path d="M30 30l32 32M62 30L30 62" stroke="#ff4d5e" stroke-width="12" stroke-linecap="round"/><circle cx="100" cy="100" r="18" fill="none" stroke="#3d8bff" stroke-width="11"/><path d="M138 138l32 32M170 138l-32 32" stroke="#ff4d5e" stroke-width="12" stroke-linecap="round"/><circle cx="152" cy="48" r="18" fill="none" stroke="#3d8bff" stroke-width="11"/><ellipse cx="70" cy="20" rx="90" ry="34" fill="#fff" opacity=".12"/></g>
+  <rect x="8" y="8" width="184" height="184" rx="40" fill="none" stroke="#140b2b" stroke-width="8"/></svg>

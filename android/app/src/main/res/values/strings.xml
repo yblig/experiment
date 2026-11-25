@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pesta 1234 Pemain</string>
+    <string name="title_activity_main">Pesta 1234 Pemain</string>
+    <string name="package_name">com.yblig.party1234</string>
+    <string name="custom_url_scheme">com.yblig.party1234</string>
+</resources>

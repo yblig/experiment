@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><defs><linearGradient id="l73" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ed957"/><stop offset="1" stop-color="#2e8b3a"/></linearGradient><clipPath id="cp74"><rect x="8" y="8" width="184" height="184" rx="40"/></clipPath></defs>
+  <rect x="8" y="14" width="184" height="184" rx="40" fill="#140b2b"/>
+  <rect x="8" y="8" width="184" height="184" rx="40" fill="url(#l73)"/>
+  <g clip-path="url(#cp74)"><path d="M0 150q50-30 100-10t100-10v70H0z" fill="#5cb83d"/><ellipse cx="140" cy="148" rx="20" ry="7" fill="#140b2b"/><rect x="138" y="50" width="6" height="98" fill="#fff" stroke="#140b2b" stroke-width="3"/><path d="M144 52l34 14-34 14z" fill="#ff4d5e" stroke="#140b2b" stroke-width="4" stroke-linejoin="round"/><circle cx="56" cy="130" r="14" fill="#fff" stroke="#140b2b" stroke-width="5"/><path d="M56 130l-30-60" stroke="#fff" stroke-width="5" stroke-dasharray="6 8" opacity=".9"/><ellipse cx="70" cy="20" rx="90" ry="34" fill="#fff" opacity=".12"/></g>
+  <rect x="8" y="8" width="184" height="184" rx="40" fill="none" stroke="#140b2b" stroke-width="8"/></svg>
