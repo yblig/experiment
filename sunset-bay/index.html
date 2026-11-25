@@ -2334,7 +2334,7 @@ function takeSnap(){
   const src=renderer.domElement,c=document.createElement('canvas');c.width=src.width;c.height=src.height;const g=c.getContext('2d');
   if(FILTERS[filterI][1]!=='none'&&'filter' in g)g.filter=FILTERS[filterI][1];g.drawImage(src,0,0);
   g.filter='none';g.font=`bold ${Math.round(c.height*.04)}px sans-serif`;g.fillStyle='rgba(255,255,255,.85)';g.textAlign='right';g.fillText('SUNSET BAY',c.width-20,c.height-20);
-  const url=c.toDataURL('image/jpeg',.9);$('phImg').src=url;$('phSave').href=url;$('photoView').hidden=false;unlock('photo');tone(1600,.05,'square',.05);noise(.15,.2,'highpass',3000);
+  const url=c.toDataURL('image/jpeg',.9);$('phImg').src=url;$('phSave').href=url;let framed=true;try{framed=window.self!==window.top}catch(e){}$('phSave').hidden=framed;$('photoView').hidden=false;unlock('photo');tone(1600,.05,'square',.05);noise(.15,.2,'highpass',3000);
 }
 /* ---- arcade mini-game: Neon Dash ---- */
 let arc=null;
