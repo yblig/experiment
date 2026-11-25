@@ -248,7 +248,6 @@ export class Mole extends BaseGame {
       const c = this.add.container(x + w / 2, y + h / 2).setRotation(rot);
       const g = this.add.graphics();
       g.fillStyle(0x6fbf4a, 1).fillRoundedRect(-w / 2 + 12, -h / 2 + 12, w - 24, h - 24, 40);
-      for (let k = 0; k < 14; k++) g.fillStyle(0x62b040, 1).fillCircle(rnd(-w / 2 + 40, w / 2 - 40), rnd(-h / 2 + 40, h / 2 - 40), rnd(10, 26));
       g.lineStyle(14, PCOL[this.slots[i].p], 1).strokeRoundedRect(-w / 2 + 12, -h / 2 + 12, w - 24, h - 24, 40);
       c.add(g);
       const holes = [];
@@ -260,7 +259,11 @@ export class Mole extends BaseGame {
         const m = this.add.image(hx, hy + 40, 'mole').setDisplaySize(140, 140).setOrigin(0.5, 1).setVisible(false);
         c.add(m);
         const cover = this.add.graphics();
-        cover.fillStyle(0x6fbf4a, 1).fillRect(hx - 100, hy + 42, 200, 50);
+        const lip = [];
+        for (let t = 0; t <= 16; t++) { const a = t / 16 * Math.PI; lip.push({ x: hx + Math.cos(a) * 86, y: hy + 40 + Math.sin(a) * 33 }); }
+        cover.fillStyle(0x6fbf4a, 1).fillRect(hx - 100, hy + 40, 200, 60);
+        cover.fillStyle(0x3a2410, 1).fillPoints(lip, true);
+        cover.lineStyle(10, 0x8a5a2a, 1).strokePoints(lip, false);
         c.add(cover);
         holes.push({ x: hx, y: hy, m, up: 0, type: null, hit: false });
       }
