@@ -6,7 +6,7 @@ name: Build APK
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, strukku]
   workflow_dispatch:
 
 permissions:
@@ -87,7 +87,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
+          tag_name: strukku-v${{ steps.apk.outputs.version }}-build${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.apk.outputs.name }} v${{ steps.apk.outputs.version }} (build ${{ github.run_number }})
           body: |
             Tap the .apk below to download it on your Android phone, then open it to install.
