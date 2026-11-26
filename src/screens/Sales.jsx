@@ -10,6 +10,9 @@ import { printBlocks, usePrinter } from '../lib/printer.js';
 import { shareCanvas } from '../lib/share.js';
 import { Page, Header, ReceiptPaper, Empty, Sheet, Field, MoneyInput, Seg } from '../components/ui.jsx';
 import { ArtReceipt } from '../components/art.jsx';
+import { useWorkActions, workOf } from './Orders.jsx';
+import { dueLabel } from './Cashier.jsx';
+import { CalendarClock, MessageCircle, PackageCheck } from 'lucide-react';
 
 const MI = { cash: Banknote, qris: QrCode, transfer: Landmark, ewallet: Smartphone, debt: HandCoins };
 const MC = { cash: ['var(--income)', 'var(--income-soft)'], qris: ['var(--info)', 'var(--info-soft)'], transfer: ['#7A4FD0', 'color-mix(in srgb, #7A4FD0 14%, var(--surface))'], ewallet: ['#1FA3B5', 'color-mix(in srgb, #1FA3B5 14%, var(--surface))'], debt: ['#C27C00', 'var(--accent-soft)'] };
@@ -18,7 +21,7 @@ export const paidOf = s => (s.payments || []).reduce((a, p) => a + p.amount, 0);
 
 export function StatusTag({ sale }) {
   if (sale.status === 'void') return <span className="tag gray">Batal</span>;
-  if (sale.status === 'debt') return <span className="tag amber">Kasbon</span>;
+  if (sale.status === 'debt') return <span className="tag amber">{useStore.getState().settings.trackOrders ? 'Belum bayar' : 'Kasbon'}</span>;
   return <span className="tag green">Lunas</span>;
 }
 
@@ -119,6 +122,7 @@ export function SaleDetail({ id }) {
   const sale = useStore(s => s.sales.find(x => x.id === id));
   const s = useStore(st => st.settings); const logo = useStore(st => st.logo);
   const [payOpen, setPayOpen] = useState(false);
+  const actions = useWorkActions();
   if (!sale) return <Page title="Transaksi"><Empty title="Transaksi tidak ditemukan" /></Page>;
   const blocks = buildSaleReceipt(sale, s, { hasLogo: !!logo });
   const remaining = sale.total - paidOf(sale);
@@ -144,6 +148,16 @@ export function SaleDetail({ id }) {
         <div className="kv"><span>Sudah dibayar</span><span className="num">{rp(paidOf(sale))}</span></div>
         <div className="kv"><span className="bold" style={{ color: 'var(--text)' }}>Sisa kasbon</span><span className="num bold">{rp(remaining)}</span></div>
       </div>}
+      {sale.work && sale.status !== 'void' && (() => { const w = workOf(sale.work); return (
+        <div className="card mt12" style={{ background: w.bg, boxShadow: 'none' }}>
+          <div className="row"><span className="bold grow" style={{ color: w.color }}>Status: {w.name}</span>{sale.due && sale.work !== 'done' ? <span className="small bold"><CalendarClock size={14} style={{ verticalAlign: -2 }} /> {dueLabel(sale.due)}</span> : null}</div>
+          {sale.work !== 'done' && <div className="row gap8 mt12">
+            {sale.work === 'process' && <button className="btn primary sm grow" onClick={() => actions.markReady(sale)}><CheckCircle2 size={18} /> Tandai selesai</button>}
+            {sale.work === 'ready' && <><button className="btn sm" style={{ background: '#25D366', color: '#fff' }} onClick={() => actions.notify(sale)}><MessageCircle size={18} /> WA</button>
+              <button className="btn primary sm grow" onClick={() => actions.markDone(sale)}><PackageCheck size={18} /> Sudah diambil</button></>}
+          </div>}
+        </div>); })()}
+      {actions.paySheet}
       {sale.payments?.length > 0 && <div className="card mt12">
         <div className="bold small">Riwayat pembayaran</div>
         {sale.payments.map((p, i) => <div key={i} className="kv small"><span>{fmtDateTime(p.date)} · {methodName(p.method)}</span><span className="num">{rp(p.amount)}</span></div>)}

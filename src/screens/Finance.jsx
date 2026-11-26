@@ -131,7 +131,7 @@ export default function Finance() {
         {view === 'in' && rep.omzet > 0 && <button className="btn ghost block mt12" onClick={() => nav.tab('history')}><ShoppingBag size={18} /> Lihat penjualan ({rep.count} transaksi)</button>}
       </div></div>
 
-      <div className="row gap12" style={{ position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 14px)', zIndex: 5 }}>
+      <div className="row gap12 fab-row" style={{ position: 'absolute', left: 16, right: 16, bottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 14px)', zIndex: 5 }}>
         <button className="btn grow" style={{ background: 'var(--income)', color: '#fff', boxShadow: '0 6px 18px rgba(23,163,74,.3)' }} onClick={() => { fx('tap'); setEntry({ type: 'in' }); }}><Plus size={20} /> Pemasukan</button>
         <button className="btn danger grow" onClick={() => { fx('tap'); setEntry({ type: 'out' }); }}><Minus size={20} /> Pengeluaran</button>
       </div>

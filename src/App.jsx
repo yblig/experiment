@@ -21,10 +21,11 @@ import ReceiptSettings from './screens/ReceiptSettings.jsx';
 import Printer from './screens/Printer.jsx';
 import { Security, Appearance, Backup, About, CashierSettings } from './screens/Settings.jsx';
 import Onboarding from './screens/Onboarding.jsx';
+import Orders from './screens/Orders.jsx';
 
 const PAGES = {
   payment: Payment, done: SaleDone, sale: SaleDetail, products: Products, categories: Categories,
-  customers: Customers, customer: CustomerDetail, debts: Debts, reports: Reports, receiptSettings: ReceiptSettings,
+  orders: Orders, customers: Customers, customer: CustomerDetail, debts: Debts, reports: Reports, receiptSettings: ReceiptSettings,
   printer: Printer, security: Security, appearance: Appearance, backup: Backup, about: About, cashierSettings: CashierSettings
 };
 const TABS = { home: Home, history: History, cashier: Cashier, finance: Finance, menu: Menu };

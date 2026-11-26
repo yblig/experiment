@@ -32,6 +32,9 @@ export default function Home() {
   const series = useMemo(() => dailySeries(st, 7), [st.sales, st.finance]);
   const low = st.products.filter(p => p.stock != null && p.stock <= s.lowStock);
   const debts = st.sales.filter(x => x.status === 'debt');
+  const work = st.sales.filter(x => x.work && x.work !== 'done' && x.status !== 'void');
+  const workReady = work.filter(x => x.work === 'ready').length;
+  const workLate = work.filter(x => x.work === 'process' && x.due && x.due < Date.now()).length;
   const debtTotal = debts.reduce((a, x) => a + x.total - (x.payments || []).reduce((b, p) => b + p.amount, 0), 0);
   const recent = st.sales.slice(0, 5);
 
@@ -51,7 +54,7 @@ export default function Home() {
 
   return (
     <div className="page">
-      <div className="header" style={{ paddingLeft: 18 }}>
+      <div className="header home">
         <div className="grow">
           <div className="sub">{greeting()} 👋</div>
           <h1 style={{ fontSize: '1.35rem' }}>{s.storeName || 'Toko Saya'}</h1>
@@ -64,7 +67,7 @@ export default function Home() {
             <svg width="190" height="190" viewBox="0 0 200 200" style={{ position: 'absolute', right: -50, top: -50, opacity: 0.12 }}><circle cx="100" cy="100" r="90" fill="none" stroke="#fff" strokeWidth="26" /><circle cx="100" cy="100" r="40" fill="#fff" /></svg>
             <div className="small" style={{ opacity: 0.85, fontWeight: 700 }}>Penjualan hari ini · {fmtDateLong(Date.now()).split(',')[0]}</div>
             <div className="num" style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-.02em', margin: '4px 0 2px' }}>{rp(today.omzet)}</div>
-            <div className="small" style={{ opacity: 0.9, fontWeight: 600 }}>{today.count} transaksi · {today.qty} barang terjual</div>
+            <div className="small" style={{ opacity: 0.9, fontWeight: 600 }}>{today.count} transaksi · {today.qty} {s.bizType === 'laundry' || s.bizType === 'service' ? 'item' : 'barang terjual'}</div>
             <button className="btn block mt16" onClick={() => nav.tab('cashier')} style={{ background: '#fff', color: 'var(--primary-dark)', boxShadow: '0 6px 16px rgba(0,0,0,.15)' }}>
               <ShoppingBag size={21} /> Mulai Transaksi
             </button>
@@ -88,6 +91,16 @@ export default function Home() {
             <Quick icon={BarChart3} label="Laporan" color="#A86A00" bg="var(--accent-soft)" onClick={async () => { if (await useUI.getState().requirePin('reports', 'Buka Laporan')) nav.push('reports'); }} />
           </div>
 
+          {s.trackOrders && (
+            <button className="card row mt16" style={{ width: '100%', padding: 16, textAlign: 'left', gap: 14 }} onClick={() => nav.push('orders')}>
+              <div style={{ width: 50, height: 50, borderRadius: 16, background: 'var(--info-soft)', display: 'grid', placeItems: 'center', fontSize: 26, flex: 'none' }}>{s.bizType === 'laundry' ? '🧺' : '📋'}</div>
+              <div className="grow" style={{ minWidth: 0 }}>
+                <div className="bold" style={{ fontSize: '1.05rem' }}>{s.bizType === 'laundry' ? 'Cucian' : 'Pesanan berjalan'}</div>
+                <div className="small muted">{work.length - workReady} diproses · <b className="green">{workReady} siap diambil</b>{workLate ? <b className="red"> · {workLate} terlambat</b> : ''}</div>
+              </div>
+              <ChevronRight size={20} className="chev" />
+            </button>
+          )}
           {(st.held.length > 0 || low.length > 0 || debts.length > 0) && (
             <div className="col gap8 mt16">
               {st.held.length > 0 && (

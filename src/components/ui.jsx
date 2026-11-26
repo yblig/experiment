@@ -272,3 +272,37 @@ export function ReceiptPaper({ blocks, onCanvas, settingsOverride }) {
     </div>
   );
 }
+
+// ---------- responsive ----------
+export function useWide(min = 780) {
+  const q = `(min-width: ${min}px)`;
+  const [wide, setWide] = useState(() => window.matchMedia?.(q).matches || false);
+  useEffect(() => {
+    const m = window.matchMedia?.(q); if (!m) return;
+    const f = e => setWide(e.matches); m.addEventListener?.('change', f); setWide(m.matches);
+    return () => m.removeEventListener?.('change', f);
+  }, [q]);
+  return wide;
+}
+
+// Decimal number keypad (for weights like 3,5 kg)
+export function DecimalPad({ value, onChange, allowDec = true }) {
+  const press = k => {
+    fx('key');
+    let v = value;
+    if (k === 'del') v = v.slice(0, -1);
+    else if (k === ',') { if (allowDec && !v.includes(',')) v = (v || '0') + ','; }
+    else { if (v === '0') v = ''; if (v.includes(',') && v.split(',')[1].length >= 2) return; if (v.replace(',', '').length >= 6) return; v += k; }
+    onChange(v);
+  };
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'del'].map(k => (
+        <button key={k} onClick={() => press(k)} disabled={k === ',' && !allowDec}
+          style={{ height: 60, borderRadius: 16, background: k === 'del' ? 'var(--bg2)' : 'var(--surface)', boxShadow: k === 'del' ? 'none' : 'var(--shadow)', fontSize: '1.5rem', fontWeight: 700, display: 'grid', placeItems: 'center', opacity: k === ',' && !allowDec ? 0.3 : 1 }}>
+          {k === 'del' ? <Delete size={24} /> : k}
+        </button>
+      ))}
+    </div>
+  );
+}

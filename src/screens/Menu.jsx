@@ -1,5 +1,5 @@
-import { Receipt, Printer, Package, Tags, Users, HandCoins, BarChart3, ShieldCheck, Palette, DatabaseBackup, Info, ChevronRight, Calculator, Store } from 'lucide-react';
-import { useStore } from '../store.js';
+import { ClipboardList, Briefcase, Receipt, Printer, Package, Tags, Users, HandCoins, BarChart3, ShieldCheck, Palette, DatabaseBackup, Info, ChevronRight, Calculator, Store } from 'lucide-react';
+import { useStore, bizOf } from '../store.js';
 import { useUI, nav } from '../ui.js';
 import { usePrinter } from '../lib/printer.js';
 import { rp } from '../lib/format.js';
@@ -44,6 +44,7 @@ export default function Menu() {
           <Item icon={Receipt} color="var(--primary)" bg="var(--primary-soft)" title="Tampilan Struk" sub="Nama toko, logo, header, footer, QR" onClick={set('receiptSettings')} />
           <Item icon={Printer} color="var(--info)" bg="var(--info-soft)" title="Printer Bluetooth" sub={pr.state === 'connected' ? `Tersambung: ${pr.name}` : s.printerName ? `Terakhir: ${s.printerName}` : 'Belum diatur'}
             right={<span style={{ width: 10, height: 10, borderRadius: 5, background: pr.state === 'connected' ? 'var(--income)' : 'var(--line)' }} />} onClick={() => nav.push('printer')} />
+          <Item icon={Briefcase} color="#8E5BD8" bg="color-mix(in srgb, #8E5BD8 14%, var(--surface))" title="Jenis Usaha" sub={`${bizOf(s.bizType).emoji} ${bizOf(s.bizType).name}${s.trackOrders ? ' · lacak pesanan' : ''}`} onClick={set('cashierSettings')} />
           <Item icon={Calculator} color="#A86A00" bg="var(--accent-soft)" title="Kasir, Pajak & Pembayaran" sub={`Pajak ${s.taxPct}% · Layanan ${s.servicePct}% · ${s.cashier ? 'Kasir ' + s.cashier : 'Nama kasir'}`} onClick={set('cashierSettings')} />
         </div>
 
@@ -52,6 +53,7 @@ export default function Menu() {
           <Item icon={Package} color="var(--info)" bg="var(--info-soft)" title="Produk & Stok" sub={`${st.products.length} produk`} onClick={() => nav.push('products')} />
           <Item icon={Tags} color="#8E5BD8" bg="color-mix(in srgb, #8E5BD8 14%, var(--surface))" title="Kategori Produk" sub={`${st.categories.length} kategori`} onClick={() => nav.push('categories')} />
           <Item icon={Users} color="#1FA3B5" bg="color-mix(in srgb, #1FA3B5 14%, var(--surface))" title="Pelanggan" sub={`${st.customers.length} pelanggan`} onClick={() => nav.push('customers')} />
+          {s.trackOrders && <Item icon={ClipboardList} color="var(--info)" bg="var(--info-soft)" title={s.bizType === 'laundry' ? 'Cucian (status & ambil)' : 'Pesanan Berjalan'} sub="Diproses, siap diambil, sudah diambil" onClick={() => nav.push('orders')} />}
           <Item icon={HandCoins} color="#C27C00" bg="var(--accent-soft)" title="Kasbon / Utang Pelanggan" sub={debts.length ? `${debts.length} belum lunas · ${rp(debtTotal)}` : 'Semua lunas'} onClick={() => nav.push('debts')} />
           <Item icon={BarChart3} color="var(--income)" bg="var(--income-soft)" title="Laporan & Laba Rugi" sub="Omzet, laba, produk terlaris, ekspor" onClick={guard('reports', 'Buka Laporan', 'reports')} />
         </div>

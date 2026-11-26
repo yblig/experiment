@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Printer, FileSpreadsheet, TrendingUp, Loader2, Trophy } from 'lucide-react';
-import { useStore, methodName } from '../store.js';
+import { useStore, methodName, fmtQty } from '../store.js';
 import { toast } from '../ui.js';
 import { rp, periodRange, fmtDate, fmtTime, toDateInput } from '../lib/format.js';
 import { fx } from '../lib/fx.js';
@@ -36,8 +36,8 @@ export default function Reports() {
       st.sales.filter(inRange).forEach(s => rows.push([s.no, fmtDate(s.date), fmtTime(s.date), s.customer, s.qty, s.subtotal, s.discount, s.service, s.tax, s.total, s.cost || 0, s.total - (s.cost || 0), methodName(s.method), s.status === 'void' ? 'Batal' : s.status === 'debt' ? 'Kasbon' : 'Lunas', s.note]));
       name = `penjualan-${stamp}.csv`;
     } else if (kind === 'items') {
-      rows = [['No Struk', 'Tanggal', 'Barang', 'Jumlah', 'Harga', 'Diskon', 'Total', 'Modal']];
-      st.sales.filter(x => inRange(x) && x.status !== 'void').forEach(s => s.items.forEach(i => rows.push([s.no, fmtDate(s.date), i.name, i.qty, i.price, i.disc || 0, i.total ?? i.price * i.qty, (i.cost || 0) * i.qty])));
+      rows = [['No Struk', 'Tanggal', 'Barang', 'Jumlah', 'Satuan', 'Harga', 'Diskon', 'Total', 'Modal']];
+      st.sales.filter(x => inRange(x) && x.status !== 'void').forEach(s => s.items.forEach(i => rows.push([s.no, fmtDate(s.date), i.name, String(i.qty).replace('.', ','), i.unit || 'pcs', i.price, i.disc || 0, i.total ?? i.price * i.qty, (i.cost || 0) * i.qty])));
       name = `barang-terjual-${stamp}.csv`;
     } else {
       rows = [['Tanggal', 'Jam', 'Jenis', 'Kategori', 'Keterangan', 'Jumlah']];
@@ -114,7 +114,7 @@ export default function Reports() {
                 <div key={p.name + i} className="li">
                   <div className="ic" style={{ background: i < 3 ? 'var(--accent-soft)' : 'var(--bg2)', color: i < 3 ? '#C27C00' : 'var(--muted)', fontWeight: 800 }}>{i === 0 ? <Trophy size={20} /> : i + 1}</div>
                   <div className="grow" style={{ minWidth: 0 }}><div className="t ellipsis">{p.emoji ? p.emoji + ' ' : ''}{p.name}</div><div className="s num">{rp(p.amount)} · untung {rp(p.profit)}</div></div>
-                  <div className="bold">{p.qty}×</div>
+                  <div className="bold">{fmtQty(p.qty, p.unit)}{!p.unit || p.unit === 'pcs' ? '×' : ''}</div>
                 </div>
               ))}
             </div>

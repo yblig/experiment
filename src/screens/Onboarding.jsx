@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Printer, Wallet, BarChart3, ShieldCheck, ArrowRight, Sparkles, PackageOpen, Check } from 'lucide-react';
-import { useStore } from '../store.js';
+import { useStore, BIZ_TYPES, bizOf } from '../store.js';
+const SAMPLE_HINT = { food: 'menu warung (nasi goreng, es teh, dll)', laundry: 'layanan laundry (cuci setrika per kg, bed cover, sepatu, dll)', retail: 'barang toko (beras per kg, gula, minyak, dll)', service: 'jasa (servis, potong rambut, print, dll)', other: 'produk' };
 import { fx } from '../lib/fx.js';
 import { Field, Seg } from '../components/ui.jsx';
 import { ArtShop, ArtBox } from '../components/art.jsx';
@@ -24,7 +25,7 @@ export default function Onboarding() {
   return (
     <div className="page" style={{ paddingTop: 'calc(var(--safe-top) + 12px)' }}>
       <div className="row" style={{ justifyContent: 'center', gap: 6, padding: '10px 0' }}>
-        {[0, 1, 2].map(i => <motion.div key={i} animate={{ width: step === i ? 26 : 8, background: step >= i ? 'var(--primary)' : 'var(--line)' }} style={{ height: 8, borderRadius: 4 }} />)}
+        {[0, 1, 2, 3].map(i => <motion.div key={i} animate={{ width: step === i ? 26 : 8, background: step >= i ? 'var(--primary)' : 'var(--line)' }} style={{ height: 8, borderRadius: 4 }} />)}
       </div>
       <AnimatePresence mode="wait">
         <motion.div key={step} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.25 }} className="scroll" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -61,12 +62,30 @@ export default function Onboarding() {
           )}
           {step === 2 && (
             <div className="pad col" style={{ flex: 1 }}>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '12px 0 4px' }}>Jenis usaha Anda</h1>
+              <p className="muted" style={{ marginTop: 0 }}>Supaya fitur dan contoh barangnya pas. Bisa diganti nanti di Menu.</p>
+              <div className="col gap8">
+                {BIZ_TYPES.map(b => (
+                  <motion.button key={b.id} whileTap={{ scale: 0.97 }} onClick={() => { fx('tap'); useStore.getState().setBizType(b.id); }} className="card row" style={{ padding: 14, textAlign: 'left', gap: 14, boxShadow: s.bizType === b.id ? 'inset 0 0 0 2.5px var(--primary), var(--shadow)' : 'var(--shadow)' }}>
+                    <span style={{ fontSize: 32, width: 44, textAlign: 'center' }}>{b.emoji}</span>
+                    <div className="grow"><div className="bold">{b.name}</div><div className="small muted">{b.desc}</div></div>
+                    {s.bizType === b.id && <Check size={22} color="var(--primary)" />}
+                  </motion.button>
+                ))}
+              </div>
+              {s.bizType === 'laundry' && <div className="small muted mt12" style={{ lineHeight: 1.5 }}>🧺 Mode laundry: harga per kg dengan timbangan desimal, estimasi selesai, status cucian, dan kabar WhatsApp saat siap diambil.</div>}
+              <div style={{ flex: 1, minHeight: 20 }} />
+              <button className="btn primary lg block" style={{ marginBottom: 'calc(var(--safe-bottom) + 18px)', marginTop: 16 }} onClick={next}>Lanjut <ArrowRight size={21} /></button>
+            </div>
+          )}
+          {step === 3 && (
+            <div className="pad col" style={{ flex: 1 }}>
               <div style={{ textAlign: 'center', marginTop: 12 }}><ArtBox size={160} /></div>
-              <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 800, margin: '8px 0 6px' }}>Daftar barang</h1>
-              <p className="muted" style={{ textAlign: 'center', marginTop: 0, lineHeight: 1.5 }}>Mau langsung mencoba dengan contoh produk warung (nasi goreng, es teh, dll)? Contoh bisa diubah atau dihapus nanti.</p>
+              <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 800, margin: '8px 0 6px' }}>Daftar {bizOf(s.bizType).item.toLowerCase()}</h1>
+              <p className="muted" style={{ textAlign: 'center', marginTop: 0, lineHeight: 1.5 }}>Mau langsung mencoba dengan contoh {SAMPLE_HINT[s.bizType] || 'produk'}? Contoh bisa diubah atau dihapus nanti.</p>
               <div style={{ flex: 1, minHeight: 20 }} />
               <div className="col gap8" style={{ marginBottom: 'calc(var(--safe-bottom) + 18px)' }}>
-                <button className="btn primary lg block" onClick={() => finish(true)}><Sparkles size={21} /> Pakai contoh produk</button>
+                <button className="btn primary lg block" onClick={() => finish(true)}><Sparkles size={21} /> Pakai contoh</button>
                 <button className="btn outline lg block" onClick={() => finish(false)}><PackageOpen size={21} /> Mulai dari kosong</button>
               </div>
             </div>

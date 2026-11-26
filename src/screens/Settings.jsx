@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, KeyRound, Trash2, Sun, Moon, Smartphone, Volume2, Vibrate, Type, Download, Upload, AlertTriangle, ChevronDown, Lock, Wallet, BarChart3, Settings, Ban, DoorOpen, Database } from 'lucide-react';
-import { useStore } from '../store.js';
+import { useStore, BIZ_TYPES } from '../store.js';
 import { useUI, nav, toast, confirmDialog } from '../ui.js';
 import { fx } from '../lib/fx.js';
 import { hashPin } from '../lib/pin.js';
@@ -133,7 +133,21 @@ export function CashierSettings() {
   const s = useStore(st => st.settings); const set = useStore(st => st.setSettings);
   const qc = s.quickCash || [10000, 20000, 50000, 100000];
   return (
-    <Page title="Kasir & Pajak">
+    <Page title="Usaha, Kasir & Pajak">
+      <div className="section-title" style={{ marginTop: 6 }}>Jenis usaha</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+        {BIZ_TYPES.map(b => (
+          <motion.button key={b.id} whileTap={{ scale: 0.95 }} onClick={() => { fx('tap'); useStore.getState().setBizType(b.id); }} className="card col" style={{ alignItems: 'flex-start', gap: 4, padding: 14, textAlign: 'left', boxShadow: s.bizType === b.id ? 'inset 0 0 0 2.5px var(--primary), var(--shadow)' : 'var(--shadow)' }}>
+            <span style={{ fontSize: 28 }}>{b.emoji}</span><span className="bold">{b.name}</span><span className="tiny muted">{b.desc}</span>
+          </motion.button>
+        ))}
+      </div>
+      <div className="list mt12">
+        <Row title="Lacak pesanan (diproses → siap → diambil)" sub="Untuk laundry, jahit, servis, katering: ada estimasi selesai & kabar WhatsApp"><Toggle on={!!s.trackOrders} onChange={v => set({ trackOrders: v })} /></Row>
+      </div>
+      {s.trackOrders && <div className="card mt12"><Field label="Estimasi selesai bawaan"><Seg value={s.dueDays ?? 2} onChange={v => set({ dueDays: v })} options={[{ value: 0, label: 'Hari ini' }, { value: 1, label: '1 hari' }, { value: 2, label: '2 hari' }, { value: 3, label: '3 hari' }]} /></Field></div>}
+      <button className="btn soft block mt12" onClick={() => { useStore.getState().loadSample(); fx('success'); toast('Contoh ditambahkan ke daftar produk'); }}>Tambahkan contoh {BIZ_TYPES.find(b => b.id === s.bizType)?.name.toLowerCase()}</button>
+      <div className="section-title">Kasir & pajak</div>
       <div className="card">
         <Field label="Nama kasir" hint="Tampil di struk"><input className="input" value={s.cashier} onChange={e => set({ cashier: e.target.value })} placeholder="Contoh: Ani" /></Field>
         <div className="row gap12">

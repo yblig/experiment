@@ -3,7 +3,8 @@
 // see on screen is what comes out of the printer.
 import QRCode from 'qrcode';
 import { rp, fmtReceiptDate, fmtDateTime } from './format.js';
-import { methodName } from '../store.js';
+import { methodName, fmtQty, bizOf } from '../store.js';
+const dueFmt = ts => { const d = new Date(ts); return ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][d.getDay()] + ', ' + fmtReceiptDate(ts); };
 
 export const charsFor = paper => (paper === 80 ? 48 : 32);
 export const dotsFor = paper => (paper === 80 ? 576 : 384);
@@ -83,10 +84,12 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   b.row('Tanggal', fmtReceiptDate(sale.date));
   if (s.showCashier && (sale.cashier || s.cashier)) b.row('Kasir', sale.cashier || s.cashier);
   if (s.showCustomer && sale.customer) b.row('Pelanggan', sale.customer);
+  if (s.showCustomer && sale.phone) b.row('No. HP', sale.phone);
+  if (sale.due) b.row('Selesai', dueFmt(sale.due), { bold: true });
   b.hr();
   for (const it of sale.items) {
     b.text(it.name, { bold: false });
-    b.row(`  ${it.qty} x ${rp(it.price, false)}`, rp(it.price * it.qty, false));
+    b.row(`  ${fmtQty(it.qty, it.unit)} x ${rp(it.price, false)}`, rp(Math.round(it.price * it.qty), false));
     if (it.disc) b.row('  Diskon', '-' + rp(it.disc, false));
   }
   b.hr();
@@ -98,7 +101,7 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   if (sale.method === 'debt') {
     const paid = (sale.payments || []).reduce((a, p) => a + p.amount, 0);
     if (paid) b.row('Sudah dibayar', rp(paid, false));
-    if (sale.status === 'debt') { b.row('SISA (KASBON)', rp(sale.total - paid), { bold: true }); }
+    if (sale.status === 'debt') { b.row(s.trackOrders ? 'SISA BAYAR' : 'SISA (KASBON)', rp(sale.total - paid), { bold: true }); }
     else b.text('*** LUNAS ***', { align: 'c', bold: true });
   } else {
     b.row(`Bayar (${methodName(sale.method)})`, rp(sale.paid, false));
@@ -106,6 +109,7 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   }
   if (sale.status === 'void') { b.blank(); b.text('*** TRANSAKSI DIBATALKAN ***', { align: 'c', bold: true }); }
   if (sale.note) { b.hr(); b.text('Catatan: ' + sale.note); }
+  if (sale.due && s.bizType === 'laundry') { b.hr(); b.text('Bawa nota ini saat mengambil cucian.', { align: 'c' }); }
   b.hr('=');
   if (s.footer) b.text(s.footer, { align: 'c' });
   if (s.showQr && s.qrText) { b.blank(); b.qr(s.qrText); if (s.qrLabel) b.text(s.qrLabel, { align: 'c' }); }
@@ -135,7 +139,7 @@ export function buildReportReceipt(rep, s, { hasLogo = false } = {}) {
   if (rep.top.length) {
     b.hr();
     b.text('Produk terlaris', { bold: true });
-    rep.top.slice(0, 10).forEach((p, i) => b.row(`${i + 1}. ${p.name}`, `${p.qty}x`));
+    rep.top.slice(0, 10).forEach((p, i) => b.row(`${i + 1}. ${p.name}`, fmtQty(p.qty, p.unit)));
   }
   if (rep.outCats.length) {
     b.hr();

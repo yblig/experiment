@@ -65,7 +65,7 @@ export default function Payment() {
 
       <div className="section-title">Cara bayar</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-        {M.map(m => {
+        {M.map(m => (m.id === 'debt' && s.trackOrders ? { ...m, name: 'Bayar Nanti' } : m)).map(m => {
           const on = method === m.id; const Icon = m.icon;
           return (
             <motion.button key={m.id} whileTap={{ scale: 0.93 }} onClick={() => { fx('tap'); setMethod(m.id); }}
@@ -98,8 +98,8 @@ export default function Payment() {
 
       {isDebt && <>
         <div className="card mt16" style={{ background: 'var(--accent-soft)', boxShadow: 'none' }}>
-          <div className="bold">Kasbon / bayar nanti</div>
-          <div className="small muted mt8">Transaksi dicatat sebagai utang pelanggan. Anda bisa melunasinya nanti dari menu Kasbon.</div>
+          <div className="bold">{s.trackOrders ? 'Bayar nanti (saat ambil)' : 'Kasbon / bayar nanti'}</div>
+          <div className="small muted mt8">{s.trackOrders ? 'Pelanggan membayar saat mengambil pesanan. Bisa juga bayar DP dulu di bawah.' : 'Transaksi dicatat sebagai utang pelanggan. Anda bisa melunasinya nanti dari menu Kasbon.'}</div>
         </div>
         <div className="mt16">
           <Field label="Nama pelanggan (wajib)">

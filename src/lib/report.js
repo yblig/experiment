@@ -21,8 +21,8 @@ export function computeReport(st, from, to, label = '') {
   const prod = {};
   valid.forEach(s => s.items.forEach(i => {
     const k = i.pid || 'm:' + i.name;
-    prod[k] = prod[k] || { name: i.name, emoji: i.emoji, qty: 0, amount: 0, profit: 0 };
-    prod[k].qty += i.qty; prod[k].amount += i.total ?? i.price * i.qty; prod[k].profit += (i.total ?? i.price * i.qty) - (i.cost || 0) * i.qty;
+    prod[k] = prod[k] || { name: i.name, emoji: i.emoji, unit: i.unit, qty: 0, amount: 0, profit: 0 };
+    prod[k].qty = Math.round((prod[k].qty + i.qty) * 100) / 100; prod[k].amount += i.total ?? Math.round(i.price * i.qty); prod[k].profit += Math.round((i.total ?? i.price * i.qty) - (i.cost || 0) * i.qty);
   }));
   const top = Object.values(prod).sort((a, b) => b.qty - a.qty);
   const oc = {};

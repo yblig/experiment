@@ -42,8 +42,38 @@ export const DEFAULT_SETTINGS = {
   pinA: null,
   lock: { finance: true, reports: true, settings: false, void: true, app: false },
   onboarded: false,
-  quickCash: [10000, 20000, 50000, 100000]
+  quickCash: [10000, 20000, 50000, 100000],
+  bizType: 'food',
+  trackOrders: false,
+  dueDays: 2
 };
+
+// ---------- business types & units ----------
+export const UNITS = [
+  { id: 'pcs', name: 'pcs' }, { id: 'porsi', name: 'porsi' }, { id: 'kg', name: 'kg', dec: true }, { id: 'gram', name: 'gram' },
+  { id: 'liter', name: 'liter', dec: true }, { id: 'meter', name: 'meter', dec: true }, { id: 'pasang', name: 'pasang' },
+  { id: 'set', name: 'set' }, { id: 'lembar', name: 'lembar' }, { id: 'bungkus', name: 'bungkus' }, { id: 'jam', name: 'jam', dec: true }
+];
+export const isDec = u => !!UNITS.find(x => x.id === u)?.dec;
+export const fmtQty = (q, unit) => {
+  const n = Math.round((Number(q) || 0) * 100) / 100;
+  const t = String(n).replace('.', ',');
+  return unit && unit !== 'pcs' ? `${t} ${unit}` : t;
+};
+
+export const BIZ_TYPES = [
+  { id: 'food', name: 'Makanan & Minuman', emoji: '🍛', desc: 'Warung, kafe, katering, jajanan', item: 'Menu' },
+  { id: 'laundry', name: 'Laundry', emoji: '🧺', desc: 'Kiloan, satuan, setrika, sepatu', item: 'Layanan', track: true, prefix: 'LDR' },
+  { id: 'retail', name: 'Toko / Kelontong', emoji: '🛒', desc: 'Sembako, minimarket, toko pakaian', item: 'Barang' },
+  { id: 'service', name: 'Jasa', emoji: '🛠️', desc: 'Servis, potong rambut, jahit, cetak', item: 'Jasa', track: true },
+  { id: 'other', name: 'Usaha lainnya', emoji: '🏪', desc: 'Atur sendiri sesuai usaha Anda', item: 'Produk' }
+];
+export const bizOf = id => BIZ_TYPES.find(b => b.id === id) || BIZ_TYPES[0];
+export const WORK = [
+  { id: 'process', name: 'Diproses', color: 'var(--info)', bg: 'var(--info-soft)' },
+  { id: 'ready', name: 'Siap diambil', color: 'var(--income)', bg: 'var(--income-soft)' },
+  { id: 'done', name: 'Sudah diambil', color: 'var(--muted)', bg: 'var(--bg2)' }
+];
 
 export const COLORS = ['#0E7C66', '#2F6FDB', '#DC4B3E', '#F2A93B', '#8E5BD8', '#D9488F', '#1FA3B5', '#6B8E23', '#B5651D', '#5B6770'];
 
@@ -73,16 +103,51 @@ export const METHODS = [
   { id: 'transfer', name: 'Transfer' },
   { id: 'ewallet', name: 'E-Wallet' }
 ];
-export const methodName = id => (METHODS.find(m => m.id === id) || { name: id === 'debt' ? 'Kasbon' : id }).name;
+export const methodName = id => (METHODS.find(m => m.id === id) || { name: id === 'debt' ? (useStore.getState().settings.trackOrders ? 'Bayar nanti' : 'Kasbon') : id }).name;
 
-export function sampleData() {
+export function sampleData(type = 'food') {
+  const P = (name, price, cost, catId, emoji, stock = null, unit = 'pcs') => ({ id: uid(), name, price, cost, catId, emoji, stock, unit, sold: 0, fav: false, created: Date.now() });
+  if (type === 'laundry') {
+    const cats = [{ id: 'l1', name: 'Kiloan', color: '#2F6FDB' }, { id: 'l2', name: 'Satuan', color: '#8E5BD8' }, { id: 'l3', name: 'Ekspres', color: '#DC4B3E' }, { id: 'l4', name: 'Tambahan', color: '#5B6770' }];
+    return { categories: cats, products: [
+      P('Cuci Kering Lipat', 6000, 2000, 'l1', '🧺', null, 'kg'),
+      P('Cuci Setrika', 8000, 3000, 'l1', '👕', null, 'kg'),
+      P('Setrika Saja', 5000, 1500, 'l1', '♨️', null, 'kg'),
+      P('Cuci Setrika Ekspres 1 Hari', 12000, 3500, 'l3', '⚡', null, 'kg'),
+      P('Bed Cover', 25000, 8000, 'l2', '🛏️'),
+      P('Selimut', 15000, 5000, 'l2', '🧣'),
+      P('Sprei Set', 15000, 5000, 'l2', '🛌', null, 'set'),
+      P('Jas / Blazer', 20000, 6000, 'l2', '🧥'),
+      P('Gorden', 10000, 3000, 'l2', '🪟', null, 'kg'),
+      P('Cuci Sepatu', 25000, 6000, 'l2', '👟', null, 'pasang'),
+      P('Boneka', 15000, 4000, 'l2', '🧸'),
+      P('Pewangi Ekstra', 2000, 500, 'l4', '🌸'),
+      P('Plastik / Hanger', 1000, 500, 'l4', '🛍️')
+    ] };
+  }
+  if (type === 'retail') {
+    const cats = [{ id: 'r1', name: 'Sembako', color: '#B5651D' }, { id: 'r2', name: 'Minuman', color: '#2F6FDB' }, { id: 'r3', name: 'Kebutuhan Rumah', color: '#8E5BD8' }, { id: 'r4', name: 'Jajanan', color: '#F2A93B' }];
+    return { categories: cats, products: [
+      P('Beras', 14000, 12000, 'r1', '🍚', 50, 'kg'), P('Gula Pasir', 17000, 15000, 'r1', '🧂', 20, 'kg'), P('Minyak Goreng 1L', 18000, 16000, 'r1', '🫗', 24),
+      P('Telur', 30000, 27000, 'r1', '🥚', 15, 'kg'), P('Mie Instan', 3500, 2800, 'r1', '🍜', 80), P('Air Mineral 600ml', 4000, 2700, 'r2', '💧', 48),
+      P('Teh Botol', 5000, 3800, 'r2', '🧃', 24), P('Kopi Sachet', 2000, 1400, 'r2', '☕', 60), P('Sabun Mandi', 4500, 3500, 'r3', '🧼', 20),
+      P('Deterjen', 6000, 4800, 'r3', '🫧', 20), P('Tisu', 10000, 8000, 'r3', '🧻', 10), P('Gas LPG 3 kg', 22000, 19000, 'r3', '🔥', 6), P('Wafer', 2000, 1400, 'r4', '🍫', 40)
+    ] };
+  }
+  if (type === 'service') {
+    const cats = [{ id: 's1', name: 'Layanan', color: '#0E7C66' }, { id: 's2', name: 'Suku Cadang', color: '#5B6770' }];
+    return { categories: cats, products: [
+      P('Jasa Servis Ringan', 50000, 0, 's1', '🛠️'), P('Jasa Servis Berat', 150000, 0, 's1', '🔧'), P('Potong Rambut', 25000, 0, 's1', '💈'),
+      P('Jahit / Permak', 20000, 3000, 's1', '🧵'), P('Cetak / Print', 1000, 300, 's1', '🖨️', null, 'lembar'), P('Fotokopi', 300, 100, 's1', '📄', null, 'lembar'),
+      P('Ongkos Kerja', 50000, 0, 's1', '⏱️', null, 'jam'), P('Sparepart', 35000, 25000, 's2', '⚙️', 10)
+    ] };
+  }
   const cats = [
     { id: 'c1', name: 'Makanan', color: '#DC4B3E' },
     { id: 'c2', name: 'Minuman', color: '#2F6FDB' },
     { id: 'c3', name: 'Camilan', color: '#F2A93B' },
     { id: 'c4', name: 'Lainnya', color: '#5B6770' }
   ];
-  const P = (name, price, cost, catId, emoji, stock = null) => ({ id: uid(), name, price, cost, catId, emoji, stock, sold: 0, fav: false, created: Date.now() });
   const products = [
     P('Nasi Goreng Spesial', 18000, 10000, 'c1', '🍛'),
     P('Mie Goreng', 15000, 8000, 'c1', '🍜'),
@@ -101,7 +166,7 @@ export function sampleData() {
   return { categories: cats, products };
 }
 
-const emptyCart = () => ({ items: [], discType: 'pct', discVal: 0, customer: '', customerId: null, note: '', heldId: null });
+const emptyCart = () => ({ items: [], discType: 'pct', discVal: 0, customer: '', customerId: null, phone: '', note: '', heldId: null, due: null });
 
 const blank = () => ({
   v: SCHEMA,
@@ -117,16 +182,16 @@ const blank = () => ({
 });
 
 export function calcCart(cart, s) {
-  const lines = cart.items.map(i => ({ ...i, total: Math.max(0, i.price * i.qty - (i.disc || 0)) }));
+  const lines = cart.items.map(i => ({ ...i, total: Math.max(0, Math.round(i.price * i.qty) - (i.disc || 0)) }));
   const subtotal = lines.reduce((a, l) => a + l.total, 0);
-  const qty = lines.reduce((a, l) => a + l.qty, 0);
+  const qty = lines.reduce((a, l) => a + (isDec(l.unit) ? 1 : l.qty), 0); // item count (a weighed line counts once)
   let discount = cart.discType === 'pct' ? Math.round(subtotal * (Number(cart.discVal) || 0) / 100) : Number(cart.discVal) || 0;
   discount = Math.min(discount, subtotal);
   const after = subtotal - discount;
   const service = Math.round(after * (Number(s.servicePct) || 0) / 100);
   const tax = Math.round((after + service) * (Number(s.taxPct) || 0) / 100);
   const total = after + service + tax;
-  const cost = lines.reduce((a, l) => a + (l.cost || 0) * l.qty, 0);
+  const cost = Math.round(lines.reduce((a, l) => a + (l.cost || 0) * l.qty, 0));
   return { lines, subtotal, qty, discount, service, tax, total, cost };
 }
 
@@ -167,7 +232,7 @@ export const useStore = create((set, get) => ({
   },
   deleteProduct(id) { set(st => ({ products: st.products.filter(p => p.id !== id) })); },
   restoreProduct(p) { set(st => ({ products: [...st.products, p] })); },
-  adjustStock(id, delta) { set(st => ({ products: st.products.map(p => (p.id === id && p.stock != null ? { ...p, stock: Math.max(0, p.stock + delta) } : p)) })); },
+  adjustStock(id, delta) { set(st => ({ products: st.products.map(p => (p.id === id && p.stock != null ? { ...p, stock: Math.max(0, Math.round((p.stock + delta) * 100) / 100) } : p)) })); },
   toggleFav(id) { set(st => ({ products: st.products.map(p => (p.id === id ? { ...p, fav: !p.fav } : p)) })); },
   saveCategory(c) {
     set(st => {
@@ -176,20 +241,26 @@ export const useStore = create((set, get) => ({
     });
   },
   deleteCategory(id) { set(st => ({ categories: st.categories.filter(c => c.id !== id), products: st.products.map(p => (p.catId === id ? { ...p, catId: null } : p)) })); },
-  loadSample() { const d = sampleData(); set(st => ({ categories: [...st.categories, ...d.categories.filter(c => !st.categories.some(x => x.id === c.id))], products: [...st.products, ...d.products] })); },
+  loadSample(type) { const d = sampleData(type || get().settings.bizType); set(st => ({ categories: [...st.categories, ...d.categories.filter(c => !st.categories.some(x => x.id === c.id))], products: [...st.products, ...d.products] })); },
 
   // ---------- cart ----------
   addToCart(p, qty = 1) {
     set(st => {
       const items = [...st.cart.items];
       const i = items.findIndex(x => x.pid === p.id && !x.custom);
-      if (i >= 0) items[i] = { ...items[i], qty: items[i].qty + qty };
-      else items.push({ key: uid(), pid: p.id, name: p.name, price: p.price, cost: p.cost || 0, qty, disc: 0, emoji: p.emoji });
+      if (i >= 0) items[i] = { ...items[i], qty: Math.round((items[i].qty + qty) * 100) / 100 };
+      else items.push({ key: uid(), pid: p.id, name: p.name, price: p.price, cost: p.cost || 0, qty, disc: 0, emoji: p.emoji, unit: p.unit || 'pcs' });
       return { cart: { ...st.cart, items } };
     });
   },
-  addManual(name, price, qty = 1) {
-    set(st => ({ cart: { ...st.cart, items: [...st.cart.items, { key: uid(), pid: null, custom: true, name, price, cost: 0, qty, disc: 0, emoji: '✏️' }] } }));
+  setLineQty(pid, qty) {
+    set(st => {
+      const items = st.cart.items.filter(x => !(x.pid === pid && !x.custom && qty <= 0)).map(x => (x.pid === pid && !x.custom ? { ...x, qty } : x));
+      return { cart: { ...st.cart, items } };
+    });
+  },
+  addManual(name, price, qty = 1, unit = 'pcs') {
+    set(st => ({ cart: { ...st.cart, items: [...st.cart.items, { key: uid(), pid: null, custom: true, name, price, cost: 0, qty, disc: 0, emoji: '✏️', unit }] } }));
   },
   setQty(key, qty) {
     set(st => ({ cart: { ...st.cart, items: qty <= 0 ? st.cart.items.filter(i => i.key !== key) : st.cart.items.map(i => (i.key === key ? { ...i, qty } : i)) } }));
@@ -220,27 +291,35 @@ export const useStore = create((set, get) => ({
     const counter = st.counter + 1;
     const sale = {
       id: uid(), no: receiptNo(s, counter, date), date,
-      items: c.lines.map(l => ({ pid: l.pid, name: l.name, price: l.price, cost: l.cost || 0, qty: l.qty, disc: l.disc || 0, total: l.total, emoji: l.emoji })),
+      items: c.lines.map(l => ({ pid: l.pid, name: l.name, price: l.price, cost: l.cost || 0, qty: l.qty, unit: l.unit || 'pcs', disc: l.disc || 0, total: l.total, emoji: l.emoji })),
       qty: c.qty, subtotal: c.subtotal, discount: c.discount, discLabel: st.cart.discType === 'pct' && st.cart.discVal ? `${st.cart.discVal}%` : '',
       service: c.service, servicePct: s.servicePct, tax: c.tax, taxPct: s.taxPct, total: c.total, cost: c.cost,
       method: debt ? 'debt' : method, paid: debt ? (paid || 0) : paid, change: debt ? 0 : Math.max(0, paid - c.total),
       status: debt && (paid || 0) < c.total ? 'debt' : 'paid',
       payments: debt && paid ? [{ date, amount: paid, method }] : [],
       customer: st.cart.customer || '', customerId: st.cart.customerId || null, note: st.cart.note || '',
-      cashier: s.cashier || ''
+      cashier: s.cashier || '', phone: st.cart.phone || '',
+      due: st.cart.due || null, work: st.cart.due ? 'process' : null
     };
     const sold = {}; sale.items.forEach(i => { if (i.pid) sold[i.pid] = (sold[i.pid] || 0) + i.qty; });
     let customers = st.customers;
     if (sale.customer && !sale.customerId) {
       const ex = customers.find(x => x.name.toLowerCase() === sale.customer.toLowerCase());
       if (ex) sale.customerId = ex.id;
-      else { const nc = { id: uid(), name: sale.customer, phone: '', note: '', created: date }; customers = [...customers, nc]; sale.customerId = nc.id; }
+      else { const nc = { id: uid(), name: sale.customer, phone: sale.phone || '', note: '', created: date }; customers = [...customers, nc]; sale.customerId = nc.id; }
     }
+    if (sale.customerId && sale.phone) customers = customers.map(x => (x.id === sale.customerId && !x.phone ? { ...x, phone: sale.phone } : x));
+    if (!sale.phone && sale.customerId) sale.phone = customers.find(x => x.id === sale.customerId)?.phone || '';
     set({
       sales: [sale, ...st.sales], counter, cart: emptyCart(), customers,
-      products: st.products.map(p => (sold[p.id] ? { ...p, sold: (p.sold || 0) + sold[p.id], stock: p.stock != null ? Math.max(0, p.stock - sold[p.id]) : null } : p))
+      products: st.products.map(p => (sold[p.id] ? { ...p, sold: Math.round(((p.sold || 0) + sold[p.id]) * 100) / 100, stock: p.stock != null ? Math.max(0, Math.round((p.stock - sold[p.id]) * 100) / 100) : null } : p))
     });
     return sale;
+  },
+  setWork(id, work) { set(st => ({ sales: st.sales.map(x => (x.id === id ? { ...x, work, [work + 'At']: Date.now() } : x)) })); },
+  setBizType(type) {
+    const b = bizOf(type);
+    set(st => ({ settings: { ...st.settings, bizType: type, trackOrders: !!b.track, ...(b.prefix && st.settings.prefix === 'INV' ? { prefix: b.prefix } : {}) } }));
   },
   voidSale(id, reason = '') {
     const st = get(); const sale = st.sales.find(x => x.id === id); if (!sale || sale.status === 'void') return;

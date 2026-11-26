@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Trash2, Star, PackagePlus, Sparkles, Minus, Tags, X } from 'lucide-react';
-import { useStore, COLORS } from '../store.js';
+import { useStore, COLORS, UNITS, fmtQty, bizOf } from '../store.js';
 import { nav, toast, confirmDialog } from '../ui.js';
 import { rp } from '../lib/format.js';
 import { fx } from '../lib/fx.js';
@@ -14,7 +14,7 @@ export function ProductSheet({ product, onClose }) {
   const [f, setF] = useState(null);
   const [emo, setEmo] = useState(false);
   const [newCat, setNewCat] = useState('');
-  useEffect(() => { if (product) { setNewCat(''); setF({ name: '', price: 0, cost: 0, catId: categories[0]?.id || null, emoji: '', stock: null, fav: false, ...product }); setEmo(false); } }, [product]);
+  useEffect(() => { if (product) { setNewCat(''); setF({ name: '', price: 0, cost: 0, catId: categories[0]?.id || null, emoji: '', stock: null, fav: false, unit: useStore.getState().settings.bizType === 'laundry' ? 'kg' : 'pcs', ...product }); setEmo(false); } }, [product]);
   const isEdit = !!product?.id;
   const save = () => {
     if (!f.name.trim()) { fx('error'); toast('Nama produk belum diisi', { type: 'error' }); return; }
@@ -48,10 +48,15 @@ export function ProductSheet({ product, onClose }) {
           </div>
         )}
         <div className="row gap12">
-          <div className="grow"><Field label="Harga jual"><MoneyInput value={f.price} onChange={v => setF({ ...f, price: v })} /></Field></div>
+          <div className="grow"><Field label={f.unit && f.unit !== 'pcs' ? `Harga jual / ${f.unit}` : 'Harga jual'}><MoneyInput value={f.price} onChange={v => setF({ ...f, price: v })} /></Field></div>
           <div className="grow"><Field label="Harga modal"><MoneyInput value={f.cost} onChange={v => setF({ ...f, cost: v })} /></Field></div>
         </div>
-        {f.price > 0 && f.cost > 0 && <div className="small bold" style={{ marginTop: -6, marginBottom: 12, color: profit >= 0 ? 'var(--income)' : 'var(--expense)' }}>Untung {rp(profit)} per barang ({Math.round(profit / f.price * 100)}%)</div>}
+        {f.price > 0 && f.cost > 0 && <div className="small bold" style={{ marginTop: -6, marginBottom: 12, color: profit >= 0 ? 'var(--income)' : 'var(--expense)' }}>Untung {rp(profit)} per {f.unit && f.unit !== 'pcs' ? f.unit : 'barang'} ({Math.round(profit / f.price * 100)}%)</div>}
+        <Field label="Dihitung per (satuan)" hint={f.unit === 'kg' || f.unit === 'liter' || f.unit === 'meter' || f.unit === 'jam' ? 'Saat di kasir, Anda bisa mengetik berat/jumlah desimal, misal 3,5' : null}>
+          <div className="row gap8" style={{ flexWrap: 'wrap' }}>
+            {UNITS.map(u => <button key={u.id} className={'chip' + ((f.unit || 'pcs') === u.id ? ' on' : '')} onClick={() => { fx('tap'); setF({ ...f, unit: u.id }); }}>{u.name}{u.dec ? ' ⚖️' : ''}</button>)}
+          </div>
+        </Field>
         <Field label="Kategori">
           <div className="row gap8" style={{ flexWrap: 'wrap' }}>
             <button className={'chip' + (!f.catId ? ' on' : '')} onClick={() => setF({ ...f, catId: null })}>Tanpa kategori</button>
@@ -71,7 +76,7 @@ export function ProductSheet({ product, onClose }) {
           <div className="row"><div className="grow"><div className="bold">Hitung stok</div><div className="tiny muted">Stok berkurang otomatis saat terjual</div></div><Toggle on={f.stock != null} onChange={on => setF({ ...f, stock: on ? 0 : null })} /></div>
           {f.stock != null && <div className="row gap8 mt12">
             <button className="icon-btn solid" onClick={() => setF({ ...f, stock: Math.max(0, f.stock - 1) })}><Minus size={20} /></button>
-            <NumInput value={f.stock} onChange={v => setF({ ...f, stock: Math.max(0, parseInt(v) || 0) })} style={{ textAlign: 'center' }} />
+            <NumInput value={f.stock} onChange={v => setF({ ...f, stock: Math.max(0, Number(String(v).replace(',', '.')) || 0) })} style={{ textAlign: 'center' }} />
             <button className="icon-btn solid" onClick={() => setF({ ...f, stock: f.stock + 1 })}><Plus size={20} /></button>
           </div>}
           {f.stock != null && <div className="row gap8 mt8">{[5, 10, 24, 50].map(n => <button key={n} className="btn sm outline grow" onClick={() => setF({ ...f, stock: f.stock + n })}>+{n}</button>)}</div>}
@@ -103,7 +108,7 @@ export function Products({ filter: initFilter = 'all' }) {
         <Empty art={ArtBox} title="Belum ada produk" text="Tambahkan barang dagangan Anda agar transaksi di kasir lebih cepat."
           action={<div className="col gap8" style={{ maxWidth: 300, margin: '0 auto' }}>
             <button className="btn primary" onClick={() => setEdit({})}><PackagePlus size={20} /> Tambah Produk</button>
-            <button className="btn soft" onClick={() => { useStore.getState().loadSample(); fx('success'); }}><Sparkles size={20} /> Pakai contoh produk</button>
+            <button className="btn soft" onClick={() => { useStore.getState().loadSample(); fx('success'); }}><Sparkles size={20} /> Pakai contoh {bizOf(useStore.getState().settings.bizType).name.toLowerCase()}</button>
           </div>} />
       ) : <>
         <div className="pad" style={{ paddingBottom: 10 }}><div className="search"><Search size={20} /><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari produk…" /></div></div>
@@ -124,13 +129,13 @@ export function Products({ filter: initFilter = 'all' }) {
                     <div className="ic" style={{ background: `color-mix(in srgb, ${cat?.color || '#0E7C66'} 15%, var(--surface))`, fontSize: 22 }}>{p.emoji || <b style={{ color: cat?.color }}>{p.name.slice(0, 2).toUpperCase()}</b>}</div>
                     <div className="grow" style={{ minWidth: 0 }}>
                       <div className="t ellipsis">{p.fav ? '⭐ ' : ''}{p.name}</div>
-                      <div className="s num">{rp(p.price)}{p.cost ? <span className="green"> · untung {rp(p.price - p.cost)}</span> : ''} · terjual {p.sold || 0}</div>
+                      <div className="s num">{rp(p.price)}{p.unit && p.unit !== 'pcs' ? '/' + p.unit : ''}{p.cost ? <span className="green"> · untung {rp(p.price - p.cost)}</span> : ''} · terjual {fmtQty(p.sold || 0, p.unit)}</div>
                     </div>
                   </button>
                   {p.stock != null ? (
                     <div className="row" style={{ gap: 4 }}>
                       <button className="icon-btn" style={{ width: 38, height: 38 }} onClick={() => { fx('tap'); useStore.getState().adjustStock(p.id, -1); }}><Minus size={18} /></button>
-                      <span className={'tag ' + (p.stock <= 0 ? 'red' : isLow ? 'amber' : 'gray')} style={{ minWidth: 44, justifyContent: 'center', fontSize: '.85rem' }}>{p.stock}</span>
+                      <span className={'tag ' + (p.stock <= 0 ? 'red' : isLow ? 'amber' : 'gray')} style={{ minWidth: 44, justifyContent: 'center', fontSize: '.85rem' }}>{fmtQty(p.stock)}</span>
                       <button className="icon-btn" style={{ width: 38, height: 38 }} onClick={() => { fx('add'); useStore.getState().adjustStock(p.id, 1); }}><Plus size={18} /></button>
                     </div>
                   ) : <span className="tiny muted">∞</span>}
