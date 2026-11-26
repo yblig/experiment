@@ -13,6 +13,8 @@ export const DEFAULT_SETTINGS = {
   footer: 'Terima kasih atas kunjungan Anda\nBarang yang sudah dibeli tidak dapat dikembalikan',
   showLogo: true,
   logoWidth: 60,
+  logoMode: 'sharp',
+  logoDark: 50,
   paper: 58,
   prefix: 'INV',
   taxPct: 0,

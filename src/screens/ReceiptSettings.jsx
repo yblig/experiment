@@ -73,7 +73,11 @@ export default function ReceiptSettings() {
           <Field label={`Lebar logo: ${s.logoWidth}%`}>
             <input type="range" min="25" max="100" step="5" value={s.logoWidth} onChange={e => set({ logoWidth: Number(e.target.value) })} style={{ width: '100%', accentColor: 'var(--primary)', height: 32 }} />
           </Field>
-          <div className="tiny muted">Logo hitam-putih dengan latar putih memberi hasil cetak paling tajam.</div>
+          <Field label="Gaya cetak logo"><Seg value={s.logoMode || 'sharp'} onChange={v => set({ logoMode: v })} options={[{ value: 'sharp', label: 'Tajam (logo)' }, { value: 'photo', label: 'Halus (foto)' }]} /></Field>
+          {(s.logoMode || 'sharp') === 'sharp' && <Field label="Ketebalan logo">
+            <div className="row gap8"><span className="tiny muted">Tipis</span><input type="range" min="0" max="100" step="5" value={s.logoDark ?? 50} onChange={e => set({ logoDark: Number(e.target.value) })} style={{ flex: 1, accentColor: 'var(--primary)', height: 32 }} /><span className="tiny muted">Tebal</span></div>
+          </Field>}
+          <div className="tiny muted">Pilih "Tajam" untuk logo/tulisan, "Halus" untuk foto. Logo dengan latar putih memberi hasil paling bagus.</div>
         </>}
       </div>
 

@@ -176,7 +176,7 @@ function loadImage(src) {
 }
 
 // Atkinson dithering → { w, h, bits: Uint8Array(w*h) 1 = black }
-export async function logoBitmap(dataUrl, paper, pct = 60) {
+export async function logoBitmap(dataUrl, paper, pct = 60, mode = 'sharp', dark = 50) {
   const img = await loadImage(dataUrl);
   const maxW = dotsFor(paper);
   let w = Math.round(maxW * Math.min(100, Math.max(20, pct)) / 100 / 8) * 8;
@@ -191,6 +191,11 @@ export async function logoBitmap(dataUrl, paper, pct = 60) {
   const g = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) g[i] = d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
   const bits = new Uint8Array(w * h);
+  if (mode === 'sharp') {
+    const t = 80 + (Number(dark) || 50) * 1.5; // 80..230: higher = more ink
+    for (let i = 0; i < w * h; i++) bits[i] = g[i] < t ? 1 : 0;
+    return { w, h, bits };
+  }
   const push = (xx, yy, e) => { if (xx >= 0 && xx < w && yy < h) g[yy * w + xx] += e; };
   for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) {
     const i = y * w + xx; const o = g[i]; const n = o < 128 ? 0 : 255; bits[i] = n === 0 ? 1 : 0;
@@ -218,7 +223,7 @@ export function qrBitmap(text, paper) {
 
 export async function prepareImages(blocks, s, logo) {
   const out = {};
-  if (logo && blocks.some(b => b.t === 'logo')) { try { out.logo = await logoBitmap(logo, s.paper, s.logoWidth); } catch { /* bad image */ } }
+  if (logo && blocks.some(b => b.t === 'logo')) { try { out.logo = await logoBitmap(logo, s.paper, s.logoWidth, s.logoMode, s.logoDark); } catch { /* bad image */ } }
   const q = blocks.find(b => b.t === 'qr');
   if (q) { try { out.qr = qrBitmap(q.data, s.paper); } catch { /* too long */ } }
   return out;

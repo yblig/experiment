@@ -252,7 +252,7 @@ export function ReceiptPaper({ blocks, onCanvas, settingsOverride }) {
   const s = settingsOverride || s0;
   const [url, setUrl] = useState(null);
   const ref = useRef(0);
-  const key = JSON.stringify(blocks) + s.paper + s.logoWidth + (logo ? logo.length : 0);
+  const key = JSON.stringify(blocks) + s.paper + s.logoWidth + s.logoMode + s.logoDark + (logo ? logo.length : 0);
   useLayoutEffect(() => {
     const id = ++ref.current;
     (async () => {
