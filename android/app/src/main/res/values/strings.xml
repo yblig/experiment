@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Air Strum</string>
+    <string name="title_activity_main">Air Strum</string>
+    <string name="package_name">com.yblig.airstrum</string>
+    <string name="custom_url_scheme">com.yblig.airstrum</string>
+</resources>
