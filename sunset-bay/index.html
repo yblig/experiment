@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sunset Bay">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Sunset Bay</title>
 <meta name="description" content="Sunset Bay: an open-world 3D city game in your browser. Walk, drive, fly, take jobs and dodge the cops.">
 <meta name="theme-color" content="#1a1240">
@@ -37,8 +43,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1026;color:var(--in
 .hp i{background:linear-gradient(90deg,#3fd15b,#9cf28f)}.ar i{background:linear-gradient(90deg,#3d8bff,#9cc8ff)}.stn i{background:linear-gradient(90deg,#ffb52e,#ffe08a)}
 .row{display:flex;justify-content:space-between;font-size:13px;opacity:.9}
 b{font-variant-numeric:tabular-nums}
-#tr{top:12px;right:12px;display:flex;gap:8px;align-items:flex-start}
+#tr{top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));display:flex;gap:8px;align-items:flex-start}
 #mini{width:140px;height:140px;border-radius:50%;border:2px solid rgba(255,79,163,.85);box-shadow:0 4px 18px rgba(0,0,0,.45);display:block}
+.trb{display:flex;flex-direction:column;align-items:flex-end;gap:8px}.iconbtn.fs{min-width:44px;width:44px;padding:0;display:grid;place-items:center}.iconbtn.fs .fsOut,body.isfs .iconbtn.fs .fsIn{display:none}body.isfs .iconbtn.fs .fsOut{display:inline}
+#tl{left:calc(12px + env(safe-area-inset-left))!important;top:calc(12px + env(safe-area-inset-top))!important}
 .iconbtn{pointer-events:auto;min-width:56px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:var(--panel);color:#fff;font:700 13px "Chakra Petch",sans-serif;cursor:pointer;padding:0 10px}
 #mission{top:12px;left:50%;transform:translateX(-50%);max-width:min(520px,60vw);text-align:center;background:var(--panel);border:1px solid rgba(255,200,61,.5);border-radius:12px;padding:6px 14px;font-weight:700;color:#fff}
 #mission em{color:var(--gold);font-style:normal}
@@ -66,9 +74,9 @@ b{font-variant-numeric:tabular-nums}
 #bigS{margin-top:10px;font-weight:700;font-size:18px;text-shadow:0 2px 6px #000}
 #touch{display:none}
 body.touch #touch{display:block}
-#joy{position:fixed;left:14px;bottom:16px;width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.28);z-index:5;touch-action:none}
+#joy{position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.28);z-index:5;touch-action:none}
 #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 3px 12px rgba(0,0,0,.4);pointer-events:none}
-#btns{position:fixed;right:10px;bottom:14px;display:grid;grid-template-columns:repeat(3,56px);gap:8px;z-index:5;direction:rtl}
+#btns{position:fixed;right:calc(10px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,56px);gap:8px;z-index:5;direction:rtl}
 #btns button{direction:ltr;width:56px;height:56px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(10,12,34,.58);color:#fff;font:700 12px/1.1 "Chakra Petch",sans-serif;touch-action:none;padding:0}
 #btns button.on{background:var(--cyan);color:#05212b}
 #btns button.hot{background:rgba(255,79,163,.85)}
@@ -173,10 +181,10 @@ body.cs .lb{height:11vh}body.cs .hud,body.cs #touch,body.cs #speedfx{display:non
   <div id="money">$0</div>
   <div id="stars" aria-label="Wanted level"><i>★</i><i>★</i><i>★</i><i>★</i><i>★</i></div>
   <div class="bars"><div class="b hp"><i id="hpBar"></i></div><div class="b ar"><i id="arBar"></i></div><div class="b stn"><i id="stBar"></i></div></div>
-  <div class="row" style="gap:10px;justify-content:space-between"><b id="clock">08:00</b><span>Pkg <b id="pkN">0/30</b></span></div>
+  <div class="row" style="gap:10px;white-space:nowrap"><b id="clock">08:00</b><span>Pkg <b id="pkN">0/30</b></span></div>
 </div></div>
 
-<div class="hud" id="tr"><canvas id="mini" width="280" height="280"></canvas><button id="phoneBtn" class="iconbtn" aria-label="Open phone">Phone</button></div>
+<div class="hud" id="tr"><canvas id="mini" width="280" height="280"></canvas><div class="trb"><button id="phoneBtn" class="iconbtn" aria-label="Open phone">Phone</button><button id="fsBtn" class="iconbtn fs" aria-label="Fullscreen" title="Fullscreen (O)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path class="fsIn" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="fsOut" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg></button></div></div>
 <div class="hud" id="mission" hidden></div>
 <div class="hud" id="toasts"></div>
 <div class="hud" id="prompt" hidden></div>
@@ -2544,6 +2552,18 @@ const ACH=[['jack','Grand theft','Jack your first car'],['five','Most wanted','H
   ['moto','Two wheels','Ride a motorcycle'],['boat','Sea legs','Take a speedboat out'],['heli','Chopper pilot','Fly a helicopter'],['racewin','Street king','Win a street race'],
   ['medic','First responder','Finish a paramedic shift'],['arcade','High score','Score 40 in Neon Dash'],['banker','Saver','Bank $5,000'],['tycoon','Tycoon','Buy a business'],
   ['storm','Storm chaser','Drive through a thunderstorm'],['fireworks','Night sky','Catch the midnight fireworks'],['garage','Collector','Save a car to your garage'],['photo','Shutterbug','Snap a photo']];
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+const standalone=()=>matchMedia('(display-mode: fullscreen),(display-mode: standalone)').matches||navigator.standalone;
+function isFS(){return !!fsEl()||standalone()}
+function fsHelp(){const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  toast(top!==self?'Fullscreen is blocked in this preview. Open the game link in your browser':ios?'On iPhone: tap Share, then Add to Home Screen for fullscreen':'Your browser blocked fullscreen','bad')}
+function enterFS(quiet){const d=document.documentElement,r=d.requestFullscreen||d.webkitRequestFullscreen;
+  if(!r||!(document.fullscreenEnabled||document.webkitFullscreenEnabled)){if(!quiet)fsHelp();return}
+  try{const pr=r.call(d,{navigationUI:'hide'});if(pr&&pr.catch)pr.catch(()=>{if(!quiet)fsHelp()})}catch(e){if(!quiet)fsHelp()}}
+function exitFS(){const x=document.exitFullscreen||document.webkitExitFullscreen;if(x&&fsEl())x.call(document)}
+function toggleFS(){if(fsEl())exitFS();else if(standalone())toast('Already fullscreen');else enterFS(false)}
+function syncFS(){document.body.classList.toggle('isfs',isFS());setTimeout(()=>dispatchEvent(new Event('resize')),120)}
+document.addEventListener('fullscreenchange',syncFS);document.addEventListener('webkitfullscreenchange',syncFS);
 function toast(msg,cls){const box=$('toasts'),d=document.createElement('div');d.className='toast '+(cls||'');d.textContent=msg;box.appendChild(d);while(box.children.length>3)box.firstChild.remove();setTimeout(()=>d.classList.add('out'),2300);setTimeout(()=>d.remove(),2800)}
 let bigT=0;
 function bigMsg(t,s,bad){$('bigT').textContent=t;$('bigT').className=bad?'bad':'';$('bigS').textContent=s||'';$('big').hidden=false;const el=$('bigT');el.style.animation='none';void el.offsetWidth;el.style.animation='';bigT=2.8}
@@ -2585,6 +2605,8 @@ function renderPhone(){
     h=`<div class="list">
       <button data-act="mute">Sound <span class="cy">${store.muted?'Off':'On'}</span></button>
       <button data-act="radio">Car radio <span class="cy">${STATIONS[radioIdx].name}</span></button>
+      <button data-act="fs">Fullscreen <span class="cy">${isFS()?'On':'Off'}</span></button>
+      <button data-act="autofs">Fullscreen when I start <span class="cy">${store.autoFs!==0?'On':'Off'}</span></button>
       <button data-act="gfx">Graphics <span class="cy">${{low:'Low',med:'Medium',high:'High',ultra:'Ultra'}[store.gfx]}</span></button>
       <button data-act="weather">Weather <span class="cy">${WX_N[store.weather]}</span></button>
       <button data-act="photo">Photo mode <span class="cy">Open</span></button>
@@ -2652,6 +2674,8 @@ function phoneAct(a){
   else if(a==='mute'){store.muted=!store.muted;if(master)master.gain.value=store.muted?0:store.sfx;save()}
   else if(a==='radio'){radioIdx=(radioIdx+1)%STATIONS.length;store.radio=radioIdx;save()}
   else if(a==='weather'){const ks=Object.keys(WX_N);store.weather=ks[(ks.indexOf(store.weather)+1)%ks.length];save()}
+  else if(a==='fs'){toggleFS();setTimeout(renderPhone,300);return}
+  else if(a==='autofs'){store.autoFs=store.autoFs===0?1:0;save();renderPhone();return}
   else if(a==='gfx'){store.gfx={low:'med',med:'high',high:'ultra',ultra:'low'}[store.gfx];save();toast('Reloading with new graphics...');setTimeout(()=>location.reload(),600);return}
   else if(a==='photo'){closePhone();openPhoto();return}
   else if(a==='invert'){store.invert=!store.invert;save()}
@@ -2746,7 +2770,7 @@ function onPress(k){
   else if(k==='q'){if(pl.veh&&pl.veh.fly)barrelRoll(1);else shove()}
   else if(k==='h')action('horn');else if(k==='c')action('cam');else if(k==='n')action('radio');
   else if(k==='p'||k==='tab')openPhone('jobs');else if(k==='m')openPhone('map');
-  else if(k==='t')unstuck();else if(k==='b'){slow=!slow;toast(slow?'Slow-mo on':'Slow-mo off')}
+  else if(k==='o')toggleFS();else if(k==='t')unstuck();else if(k==='b'){slow=!slow;toast(slow?'Slow-mo on':'Slow-mo off')}
 }
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright','tab'].includes(k))e.preventDefault();if(!keys[k])onPress(k);if(!uiOpen)keys[k]=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
@@ -2788,6 +2812,7 @@ function renderButtons(ctx){
 }
 /* overlay wiring */
 $('go').addEventListener('click',()=>start());
+$('fsBtn').addEventListener('click',e=>{e.stopPropagation();toggleFS()});
 $('phoneBtn').addEventListener('click',()=>{if($('phone').hidden)openPhone('jobs');else closePhone()});
 $('phoneClose').addEventListener('click',closePhone);
 for(const b of document.querySelectorAll('.ptabs button'))b.addEventListener('click',()=>{phoneTab=b.dataset.tab;renderPhone()});
@@ -3029,7 +3054,7 @@ function updGame(dt){
   saveT+=dt;if(saveT>10){saveT=0;save()}
 }
 function start(){
-  if(started)return;started=true;$('start').hidden=true;initAudio();camYaw=pl.yaw;
+  if(started)return;if(isTouch&&store.autoFs!==0&&!isFS())enterFS(true);started=true;$('start').hidden=true;initAudio();camYaw=pl.yaw;
   toast(isTouch?'Tap Car near a ride to get in':'Press F near a car to get in','gold');
   setTimeout(()=>toast(isTouch?'Phone (top right) has jobs, map and taxi':'Press P for your phone: jobs, map and more'),2600);
   if(store.story<STORY.length)setTimeout(()=>toast(store.story===0?'Story: meet Sol at the pink S marker next door':'Story: head to the '+(STORY[store.story].giver==='SOL'?'pink S':'gold T')+' marker on your map','gold'),5200);
