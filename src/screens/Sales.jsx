@@ -1,0 +1,222 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Banknote, QrCode, Landmark, Smartphone, HandCoins, Printer, Share2, ShoppingBag, Search, Ban, CheckCircle2, X, Loader2, ChevronRight } from 'lucide-react';
+import { useStore, methodName } from '../store.js';
+import { useUI, nav, toast, confirmDialog } from '../ui.js';
+import { rp, fmtTime, relDay, dayKey, fmtDateTime, periodRange } from '../lib/format.js';
+import { fx } from '../lib/fx.js';
+import { buildSaleReceipt, prepareImages, renderReceiptCanvas } from '../lib/receipt.js';
+import { printBlocks, usePrinter } from '../lib/printer.js';
+import { shareCanvas } from '../lib/share.js';
+import { Page, Header, ReceiptPaper, Empty, Sheet, Field, MoneyInput, Seg } from '../components/ui.jsx';
+import { ArtReceipt } from '../components/art.jsx';
+
+const MI = { cash: Banknote, qris: QrCode, transfer: Landmark, ewallet: Smartphone, debt: HandCoins };
+const MC = { cash: ['var(--income)', 'var(--income-soft)'], qris: ['var(--info)', 'var(--info-soft)'], transfer: ['#7A4FD0', 'color-mix(in srgb, #7A4FD0 14%, var(--surface))'], ewallet: ['#1FA3B5', 'color-mix(in srgb, #1FA3B5 14%, var(--surface))'], debt: ['#C27C00', 'var(--accent-soft)'] };
+
+export const paidOf = s => (s.payments || []).reduce((a, p) => a + p.amount, 0);
+
+export function StatusTag({ sale }) {
+  if (sale.status === 'void') return <span className="tag gray">Batal</span>;
+  if (sale.status === 'debt') return <span className="tag amber">Kasbon</span>;
+  return <span className="tag green">Lunas</span>;
+}
+
+export function SaleRow({ sale, time }) {
+  const Icon = MI[sale.method] || Banknote; const [c, bg] = MC[sale.method] || MC.cash;
+  return (
+    <button className="li" onClick={() => { fx('tap'); nav.push('sale', { id: sale.id }); }} style={sale.status === 'void' ? { opacity: 0.55 } : null}>
+      <div className="ic" style={{ background: bg, color: c }}><Icon size={21} /></div>
+      <div className="grow" style={{ minWidth: 0 }}>
+        <div className="t ellipsis">{sale.customer || sale.items.map(i => i.name).join(', ')}</div>
+        <div className="s ellipsis">{time} · {sale.qty} barang · {methodName(sale.method)}</div>
+      </div>
+      <div className="col" style={{ alignItems: 'flex-end', gap: 4 }}>
+        <div className="bold num" style={{ textDecoration: sale.status === 'void' ? 'line-through' : 'none' }}>{rp(sale.total)}</div>
+        <StatusTag sale={sale} />
+      </div>
+    </button>
+  );
+}
+
+// ---------- print / share helpers ----------
+export async function printSale(sale, copy = '') {
+  const st = useStore.getState();
+  const blocks = buildSaleReceipt(sale, st.settings, { hasLogo: !!st.logo, copy });
+  try {
+    await printBlocks(blocks, { copies: copy ? 1 : st.settings.copies });
+    fx('print'); toast('Struk berhasil dicetak');
+    return true;
+  } catch (e) {
+    fx('error');
+    if (e.code === 'NO_PRINTER') {
+      if (await confirmDialog({ title: 'Printer belum diatur', message: 'Sambungkan printer struk Bluetooth Anda terlebih dahulu.', ok: 'Atur Printer', icon: Printer })) nav.push('printer');
+    } else {
+      if (await confirmDialog({ title: 'Gagal mencetak', message: e.message, ok: 'Buka pengaturan printer', cancel: 'Tutup', danger: true })) nav.push('printer');
+    }
+    return false;
+  }
+}
+
+export async function shareSale(sale) {
+  const st = useStore.getState();
+  const blocks = buildSaleReceipt(sale, st.settings, { hasLogo: !!st.logo });
+  try {
+    const imgs = await prepareImages(blocks, st.settings, st.logo);
+    const c = await renderReceiptCanvas(blocks, imgs, st.settings, 2);
+    await shareCanvas(c, `struk-${sale.no}.png`, `Struk ${st.settings.storeName} ${sale.no} - Total ${rp(sale.total)}`);
+  } catch (e) { if (!/cancel/i.test(e?.message || '')) toast('Gagal membagikan: ' + (e.message || e), { type: 'error' }); }
+}
+
+function PrintBtn({ sale, copy, className = 'btn primary grow', label = 'Cetak' }) {
+  const busy = usePrinter(p => p.busy);
+  return <button className={className} disabled={busy} onClick={() => printSale(sale, copy)}>{busy ? <Loader2 size={20} className="spin" /> : <Printer size={20} />} {busy ? 'Mencetak…' : label}</button>;
+}
+
+// ---------- done ----------
+export function SaleDone({ saleId, print }) {
+  const sale = useStore(s => s.sales.find(x => x.id === saleId));
+  const s = useStore(st => st.settings); const logo = useStore(st => st.logo);
+  const did = useRef(false);
+  useEffect(() => { if (sale && (print || s.autoPrint) && !did.current) { did.current = true; setTimeout(() => printSale(sale), 450); } }, []);
+  if (!sale) return null;
+  const blocks = buildSaleReceipt(sale, s, { hasLogo: !!logo });
+  const finish = () => { nav.root(); useUI.getState().setTab('cashier'); };
+  return (
+    <div className="page">
+      <Header title="Transaksi berhasil" onBack={finish} />
+      <div className="scroll"><div className="pad" style={{ paddingBottom: 24 }}>
+        <div className="col" style={{ alignItems: 'center', textAlign: 'center' }}>
+          <motion.div initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', damping: 11, stiffness: 260, delay: 0.05 }}
+            style={{ width: 84, height: 84, borderRadius: 30, background: 'linear-gradient(150deg, #34D27F, var(--income))', display: 'grid', placeItems: 'center', boxShadow: '0 10px 30px rgba(23,163,74,.35)' }}>
+            <motion.svg width="44" height="44" viewBox="0 0 24 24"><motion.path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.3, duration: 0.4 }} /></motion.svg>
+          </motion.div>
+          <div className="bold mt16" style={{ fontSize: '1.1rem' }}>{sale.status === 'debt' ? 'Kasbon tercatat' : 'Pembayaran diterima'}</div>
+          <div className="num" style={{ fontSize: '2rem', fontWeight: 800 }}>{rp(sale.total)}</div>
+          {sale.method === 'cash' && sale.change > 0 && (
+            <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }} className="card mt12" style={{ background: 'var(--income-soft)', boxShadow: 'none', padding: '12px 22px' }}>
+              <div className="small bold muted">Kembalian</div>
+              <div className="num green" style={{ fontSize: '1.8rem', fontWeight: 800 }}>{rp(sale.change)}</div>
+            </motion.div>
+          )}
+          {sale.status === 'debt' && <div className="small muted mt8">Sisa kasbon {sale.customer}: <b>{rp(sale.total - paidOf(sale))}</b></div>}
+        </div>
+        <div className="mt24"><ReceiptPaper blocks={blocks} /></div>
+      </div></div>
+      <div className="sheet-foot col gap8">
+        <div className="row gap8">
+          <button className="btn outline" onClick={() => shareSale(sale)}><Share2 size={20} /> Kirim</button>
+          <PrintBtn sale={sale} className="btn soft grow" label="Cetak struk" />
+        </div>
+        <button className="btn primary lg block" onClick={finish}><ShoppingBag size={21} /> Transaksi Baru</button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- detail ----------
+export function SaleDetail({ id }) {
+  const sale = useStore(s => s.sales.find(x => x.id === id));
+  const s = useStore(st => st.settings); const logo = useStore(st => st.logo);
+  const [payOpen, setPayOpen] = useState(false);
+  if (!sale) return <Page title="Transaksi"><Empty title="Transaksi tidak ditemukan" /></Page>;
+  const blocks = buildSaleReceipt(sale, s, { hasLogo: !!logo });
+  const remaining = sale.total - paidOf(sale);
+  const doVoid = async () => {
+    if (!(await useUI.getState().requirePin('void', 'PIN untuk membatalkan'))) return;
+    if (!(await confirmDialog({ title: 'Batalkan transaksi?', message: `${sale.no} senilai ${rp(sale.total)} akan dibatalkan dan stok barang dikembalikan. Tindakan ini tidak bisa diurungkan.`, ok: 'Ya, batalkan', danger: true }))) return;
+    useStore.getState().voidSale(sale.id); fx('remove'); toast('Transaksi dibatalkan');
+  };
+  return (
+    <Page title={sale.no} sub={fmtDateTime(sale.date)}
+      footer={sale.status === 'void' ? null : (
+        <div className="row gap8">
+          <button className="btn outline" onClick={() => shareSale(sale)} aria-label="Bagikan"><Share2 size={20} /></button>
+          {sale.status === 'debt' && <button className="btn accent grow" onClick={() => setPayOpen(true)}><HandCoins size={20} /> Lunasi</button>}
+          <PrintBtn sale={sale} copy="SALINAN / CETAK ULANG" label="Cetak ulang" className={'btn grow ' + (sale.status === 'debt' ? 'soft' : 'primary')} />
+        </div>
+      )}>
+      <div className="card row" style={{ justifyContent: 'space-between' }}>
+        <div><div className="tiny bold muted">Total</div><div className="bold num" style={{ fontSize: '1.4rem' }}>{rp(sale.total)}</div></div>
+        <div className="col" style={{ alignItems: 'flex-end', gap: 6 }}><StatusTag sale={sale} /><span className="small muted">{methodName(sale.method)}</span></div>
+      </div>
+      {sale.status === 'debt' && <div className="card mt12" style={{ background: 'var(--accent-soft)', boxShadow: 'none' }}>
+        <div className="kv"><span>Sudah dibayar</span><span className="num">{rp(paidOf(sale))}</span></div>
+        <div className="kv"><span className="bold" style={{ color: 'var(--text)' }}>Sisa kasbon</span><span className="num bold">{rp(remaining)}</span></div>
+      </div>}
+      {sale.payments?.length > 0 && <div className="card mt12">
+        <div className="bold small">Riwayat pembayaran</div>
+        {sale.payments.map((p, i) => <div key={i} className="kv small"><span>{fmtDateTime(p.date)} · {methodName(p.method)}</span><span className="num">{rp(p.amount)}</span></div>)}
+      </div>}
+      <div className="section-title">Struk</div>
+      <ReceiptPaper blocks={blocks} />
+      {sale.status !== 'void' && <button className="btn ghost block mt24" style={{ color: 'var(--expense)' }} onClick={doVoid}><Ban size={20} /> Batalkan transaksi</button>}
+      <PayDebtSheet sale={payOpen ? sale : null} onClose={() => setPayOpen(false)} />
+    </Page>
+  );
+}
+
+export function PayDebtSheet({ sale, onClose }) {
+  const [amt, setAmt] = useState(0); const [m, setM] = useState('cash');
+  const remaining = sale ? sale.total - paidOf(sale) : 0;
+  useEffect(() => { if (sale) { setAmt(remaining); setM('cash'); } }, [sale?.id]);
+  const save = () => {
+    useStore.getState().payDebt(sale.id, Math.min(amt, remaining), m);
+    fx('cash'); toast(amt >= remaining ? 'Kasbon lunas 🎉' : `Pembayaran ${rp(amt)} dicatat`); onClose();
+  };
+  return (
+    <Sheet open={!!sale} onClose={onClose} title="Bayar kasbon" footer={<button className="btn primary block lg" disabled={!amt} onClick={save}><CheckCircle2 size={20} /> Simpan pembayaran</button>}>
+      {sale && <>
+        <div className="card flat"><div className="kv"><span>{sale.customer}</span><span className="num bold">Sisa {rp(remaining)}</span></div></div>
+        <div className="mt16"><Field label="Jumlah dibayar"><MoneyInput value={amt} onChange={v => setAmt(Math.min(v, remaining))} big /></Field></div>
+        <div className="row gap8"><button className="btn sm soft" onClick={() => setAmt(remaining)}>Lunas semua</button><button className="btn sm outline" onClick={() => setAmt(Math.round(remaining / 2))}>Setengah</button></div>
+        <div className="mt16"><Field label="Dibayar dengan"><Seg value={m} onChange={setM} options={[{ value: 'cash', label: 'Tunai' }, { value: 'qris', label: 'QRIS' }, { value: 'transfer', label: 'Transfer' }]} /></Field></div>
+      </>}
+    </Sheet>
+  );
+}
+
+// ---------- history tab ----------
+export function History() {
+  const sales = useStore(s => s.sales);
+  const [q, setQ] = useState(''); const [status, setStatus] = useState('all'); const [period, setPeriod] = useState('all');
+  const filtered = useMemo(() => {
+    const [from, to] = periodRange(period);
+    const t = q.trim().toLowerCase();
+    return sales.filter(x => x.date >= from && x.date < to
+      && (status === 'all' || x.status === status)
+      && (!t || x.no.toLowerCase().includes(t) || (x.customer || '').toLowerCase().includes(t) || x.items.some(i => i.name.toLowerCase().includes(t))));
+  }, [sales, q, status, period]);
+  const groups = useMemo(() => {
+    const m = new Map();
+    filtered.forEach(x => { const k = dayKey(x.date); if (!m.has(k)) m.set(k, []); m.get(k).push(x); });
+    return [...m.entries()];
+  }, [filtered]);
+  const total = filtered.filter(x => x.status !== 'void').reduce((a, x) => a + x.total, 0);
+  return (
+    <div className="page">
+      <Header title="Riwayat Transaksi" sub={`${filtered.length} transaksi · ${rp(total)}`} back={false} />
+      <div className="pad" style={{ paddingBottom: 10 }}>
+        <div className="search"><Search size={20} /><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari no. struk, pelanggan, barang…" />
+          {q && <button onClick={() => setQ('')} style={{ position: 'absolute', right: 12, top: 13 }}><X size={20} color="var(--muted)" /></button>}</div>
+      </div>
+      <div className="chips" style={{ paddingBottom: 6 }}>
+        {[['all', 'Semua waktu'], ['today', 'Hari ini'], ['yesterday', 'Kemarin'], ['7d', '7 hari'], ['month', 'Bulan ini']].map(([k, l]) => <button key={k} className={'chip' + (period === k ? ' on' : '')} onClick={() => { fx('tap'); setPeriod(k); }}>{l}</button>)}
+      </div>
+      <div className="chips" style={{ paddingBottom: 10 }}>
+        {[['all', 'Semua status'], ['paid', 'Lunas'], ['debt', 'Kasbon'], ['void', 'Dibatalkan']].map(([k, l]) => <button key={k} className={'chip' + (status === k ? ' on' : '')} onClick={() => { fx('tap'); setStatus(k); }}>{l}</button>)}
+      </div>
+      <div className="scroll with-tabbar"><div className="pad">
+        {groups.length === 0 ? (
+          <Empty art={ArtReceipt} title={sales.length ? 'Tidak ada yang cocok' : 'Belum ada transaksi'} text={sales.length ? 'Coba ubah pencarian atau filter.' : 'Semua struk yang Anda buat akan tersimpan rapi di sini.'}
+            action={!sales.length && <button className="btn primary" onClick={() => nav.tab('cashier')}><ShoppingBag size={20} /> Buka Kasir</button>} />
+        ) : groups.map(([k, list]) => (
+          <div key={k}>
+            <div className="section-title"><span>{relDay(k)}</span><span className="num" style={{ textTransform: 'none', letterSpacing: 0 }}>{rp(list.filter(x => x.status !== 'void').reduce((a, x) => a + x.total, 0))}</span></div>
+            <div className="list">{list.map(x => <SaleRow key={x.id} sale={x} time={fmtTime(x.date)} />)}</div>
+          </div>
+        ))}
+      </div></div>
+    </div>
+  );
+}

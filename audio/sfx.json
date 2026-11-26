@@ -1,0 +1,13 @@
+{
+  "tap":     { "preset": "tap", "pitch": 1.05, "volume": 0.5 },
+  "key":     { "preset": "tick", "pitch": 1.2, "volume": 0.5 },
+  "add":     { "preset": "pickup", "pitch": 1.25, "volume": 0.55 },
+  "remove":  { "preset": "back", "pitch": 0.9, "volume": 0.5 },
+  "cash":    { "preset": "cash" },
+  "success": { "preset": "confirm", "pitch": 1.1 },
+  "print":   { "preset": "notify", "pitch": 1.0, "volume": 0.6 },
+  "error":   { "preset": "error", "volume": 0.6 },
+  "toggle":  { "preset": "toggle", "volume": 0.5 },
+  "whoosh":  { "preset": "whoosh", "pitch": 1.4, "volume": 0.25, "lowpass": 3000 },
+  "unlock":  { "preset": "unlock", "volume": 0.6 }
+}
