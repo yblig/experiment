@@ -37,7 +37,7 @@ export default function ReceiptSettings() {
     catch { toast('Gambar tidak bisa dibuka', { type: 'error' }); }
   };
   const test = async () => {
-    try { await printBlocks(buildTestReceipt(s, { hasLogo: !!st.logo })); fx('print'); toast('Tes cetak terkirim'); }
+    try { if (await printBlocks(buildTestReceipt(s, { hasLogo: !!st.logo }), { name: 'tes-struk' }) === 'web') return; fx('print'); toast('Tes cetak terkirim'); }
     catch (e) { fx('error'); toast(e.message, { type: 'error' }); if (e.code === 'NO_PRINTER') nav.push('printer'); }
   };
   return (

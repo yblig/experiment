@@ -276,3 +276,13 @@ html[data-theme="dark"] .tag.amber { color: var(--accent); }
   .sheet { max-height: 96%; }
   .empty img, .empty svg { width: 110px; height: 110px; }
 }
+
+/* ---------- web printing (AirPrint) ---------- */
+#print-area { display: none; }
+@media print {
+  @page { margin: 4mm; }
+  html, body { background: #fff !important; height: auto !important; overflow: visible !important; }
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; }
+  #print-area img { display: block; margin: 0 auto; }
+}

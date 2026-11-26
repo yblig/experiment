@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Printer, ShoppingBag, ArrowDownCircle, ArrowUpCircle, Package, BarChart3, Lock, ChevronRight, AlertTriangle, PauseCircle, HandCoins, Bluetooth, Eye } from 'lucide-react';
 import { useStore } from '../store.js';
 import { useUI, nav } from '../ui.js';
-import { usePrinter } from '../lib/printer.js';
+import { usePrinter, isNative } from '../lib/printer.js';
+import { storage } from '../lib/storage.js';
+import { X, Share as ShareIcon, SquarePlus } from 'lucide-react';
 import { computeReport, dailySeries } from '../lib/report.js';
 import { rp, greeting, fmtDateLong, fmtTime, startOfDay } from '../lib/format.js';
 import { BarChart } from '../components/charts.jsx';
@@ -14,12 +16,31 @@ export function PrinterPill() {
   const p = usePrinter(); const name = useStore(s => s.settings.printerName);
   const on = p.state === 'connected';
   const color = on ? 'var(--income)' : p.state === 'connecting' ? 'var(--accent)' : 'var(--muted)';
+  if (!isNative) return null;
   return (
     <button onClick={() => nav.push('printer')} className="row" style={{ gap: 7, height: 40, padding: '0 12px', borderRadius: 20, background: 'var(--surface)', boxShadow: 'var(--shadow)', fontSize: '.8rem', fontWeight: 800, color }}>
       {on ? <Printer size={17} /> : <Bluetooth size={17} className={p.state === 'connecting' ? 'pulse' : ''} />}
       <span className="ellipsis" style={{ maxWidth: 92 }}>{on ? (p.name || name || 'Printer') : p.state === 'connecting' ? 'Menyambung…' : 'Printer'}</span>
       <span style={{ width: 8, height: 8, borderRadius: 4, background: color }} />
     </button>
+  );
+}
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = () => window.navigator.standalone === true || window.matchMedia?.('(display-mode: standalone)').matches;
+
+function InstallHint() {
+  const [hide, setHide] = useState(() => isNative || standalone() || !isIOS || storage.get('installHintHidden', false));
+  if (hide) return null;
+  return (
+    <div className="card row" style={{ background: 'var(--info-soft)', boxShadow: 'none', marginBottom: 12, alignItems: 'flex-start', gap: 12 }}>
+      <SquarePlus size={26} color="var(--info)" style={{ flex: 'none' }} />
+      <div className="grow small" style={{ lineHeight: 1.5 }}>
+        <div className="bold" style={{ fontSize: '1rem' }}>Pasang StrukKu di layar utama</div>
+        Ketuk tombol <b>Bagikan</b> <ShareIcon size={15} style={{ verticalAlign: -2 }} /> di Safari, lalu pilih <b>“Tambah ke Layar Utama”</b>. Setelah itu StrukKu terbuka seperti aplikasi biasa.
+      </div>
+      <button className="icon-btn" style={{ width: 36, height: 36 }} onClick={() => { storage.set('installHintHidden', true); setHide(true); }} aria-label="Tutup"><X size={18} /></button>
+    </div>
   );
 }
 
@@ -63,6 +84,7 @@ export default function Home() {
       </div>
       <div className="scroll with-tabbar">
         <div className="pad">
+          <InstallHint />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ background: 'linear-gradient(150deg, var(--primary-2), var(--primary-dark))', color: '#fff', padding: 20, position: 'relative', overflow: 'hidden' }}>
             <svg width="190" height="190" viewBox="0 0 200 200" style={{ position: 'absolute', right: -50, top: -50, opacity: 0.12 }}><circle cx="100" cy="100" r="90" fill="none" stroke="#fff" strokeWidth="26" /><circle cx="100" cy="100" r="40" fill="#fff" /></svg>
             <div className="small" style={{ opacity: 0.85, fontWeight: 700 }}>Penjualan hari ini · {fmtDateLong(Date.now()).split(',')[0]}</div>

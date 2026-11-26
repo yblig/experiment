@@ -24,7 +24,7 @@ export default function Reports() {
   const margin = rep.omzet ? Math.round((rep.gross / rep.omzet) * 100) : 0;
 
   const print = async () => {
-    try { await printBlocks(buildReportReceipt(rep, st.settings)); fx('print'); toast('Laporan dicetak'); }
+    try { if (await printBlocks(buildReportReceipt(rep, st.settings), { name: 'laporan' }) === 'web') return; fx('print'); toast('Laporan dicetak'); }
     catch (e) { fx('error'); toast(e.message, { type: 'error' }); }
   };
   const doExport = async kind => {

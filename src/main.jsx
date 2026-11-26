@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { Capacitor } from '@capacitor/core';
 import '@fontsource/plus-jakarta-sans/500.css';
 import '@fontsource/plus-jakarta-sans/600.css';
 import '@fontsource/plus-jakarta-sans/700.css';
@@ -22,6 +23,9 @@ import App from './App.jsx';
   createRoot(document.getElementById('app')).render(<App />);
   loadSounds();
   setTimeout(() => { native.hideSplash(); autoConnect(); }, 300);
+  if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
   window.__store = useStore;
   window.__ui = (await import('./ui.js')).useUI;
 })();

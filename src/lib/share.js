@@ -12,6 +12,10 @@ export async function shareFile(name, data, { base64 = false, mime = 'text/plain
     return;
   }
   const blob = base64 ? new Blob([Uint8Array.from(atob(data), c => c.charCodeAt(0))], { type: mime }) : new Blob([data], { type: mime });
+  try {
+    const file = new File([blob], name, { type: mime });
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title, text: text || undefined }); return; }
+  } catch (e) { if (e?.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }

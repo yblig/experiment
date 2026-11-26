@@ -3,7 +3,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { create } from 'zustand';
 import { useStore } from '../store.js';
-import { encodeEscPos, prepareImages } from './receipt.js';
+import { encodeEscPos, prepareImages, renderReceiptCanvas } from './receipt.js';
 
 const Bt = registerPlugin('BtPrinter');
 export const isNative = Capacitor.isNativePlatform();
@@ -91,8 +91,15 @@ async function writeBytes(bytes) {
 }
 
 /** Print blocks. copies → repeated. Throws a friendly Error on failure. */
-export async function printBlocks(blocks, { copies = 1 } = {}) {
+export async function printBlocks(blocks, { copies = 1, name = 'struk' } = {}) {
   const st = useStore.getState();
+  if (!isNative) {
+    // Web (iPhone/iPad): no Bluetooth in Safari → AirPrint / share the receipt as an image.
+    const imgs = await prepareImages(blocks, st.settings, st.logo);
+    const canvas = await renderReceiptCanvas(blocks, imgs, st.settings, 2);
+    usePrinter.setState({ webJob: { url: canvas.toDataURL('image/png'), canvas, name } });
+    return 'web';
+  }
   setP({ busy: true });
   try {
     await ensureConnected();

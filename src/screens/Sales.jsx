@@ -47,7 +47,7 @@ export async function printSale(sale, copy = '') {
   const st = useStore.getState();
   const blocks = buildSaleReceipt(sale, st.settings, { hasLogo: !!st.logo, copy });
   try {
-    await printBlocks(blocks, { copies: copy ? 1 : st.settings.copies });
+    if (await printBlocks(blocks, { copies: copy ? 1 : st.settings.copies, name: `struk-${sale.no}` }) === 'web') return true;
     fx('print'); toast('Struk berhasil dicetak');
     return true;
   } catch (e) {

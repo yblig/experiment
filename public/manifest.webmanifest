@@ -1,0 +1,17 @@
+{
+  "name": "StrukKu — Kasir & Pembukuan",
+  "short_name": "StrukKu",
+  "description": "Kasir, struk, laundry kiloan, pemasukan & pengeluaran untuk usaha kecil.",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F2ED",
+  "theme_color": "#0E7C66",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

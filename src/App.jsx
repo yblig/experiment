@@ -22,6 +22,7 @@ import Printer from './screens/Printer.jsx';
 import { Security, Appearance, Backup, About, CashierSettings } from './screens/Settings.jsx';
 import Onboarding from './screens/Onboarding.jsx';
 import Orders from './screens/Orders.jsx';
+import WebPrintHost from './components/WebPrint.jsx';
 
 const PAGES = {
   payment: Payment, done: SaleDone, sale: SaleDetail, products: Products, categories: Categories,
@@ -132,6 +133,7 @@ export default function App() {
           );
         })}
       </AnimatePresence>
+      <WebPrintHost />
       <DialogHost />
       <PinHost />
       <ToastHost />

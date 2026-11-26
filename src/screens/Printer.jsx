@@ -13,6 +13,36 @@ import { ArtPrinter } from '../components/art.jsx';
 let resumeRef = null;
 native.onResume(() => resumeRef?.());
 
+function WebPrinterInfo({ test }) {
+  const s = useStore(st => st.settings); const set = useStore(st => st.setSettings);
+  const steps = [
+    ['AirPrint (printer Wi-Fi)', 'Tekan Cetak di struk → pilih “Cetak (AirPrint)” → pilih printer Anda. Cocok untuk printer Wi-Fi yang mendukung AirPrint.'],
+    ['Printer thermal Bluetooth', 'Tekan Cetak → “Bagikan gambar” → pilih aplikasi bawaan printer Anda (yang biasanya ada di kardus/manual printer) untuk mencetak gambar struk.'],
+    ['Kirim ke pelanggan', 'Tekan Cetak → “Bagikan gambar” → WhatsApp. Pelanggan menerima struk digital tanpa kertas.']
+  ];
+  return (
+    <Page title="Cara Mencetak" sub="Versi iPhone / iPad / browser">
+      <div className="card" style={{ textAlign: 'center', paddingTop: 8 }}>
+        <ArtPrinter size={130} />
+        <div className="bold" style={{ fontSize: '1.1rem' }}>Cetak lewat AirPrint atau bagikan gambar</div>
+        <div className="small muted mt8" style={{ lineHeight: 1.5 }}>Safari di iPhone/iPad tidak mengizinkan aplikasi web menyambung langsung ke printer Bluetooth. Untuk sambungan Bluetooth langsung, pakai aplikasi Android StrukKu.</div>
+        <button className="btn primary block mt16" onClick={test}><PrinterIcon size={20} /> Coba cetak struk tes</button>
+      </div>
+      <div className="section-title">Pilihan mencetak</div>
+      <div className="card">
+        {steps.map(([t, d], i) => (
+          <div key={i} className="row" style={{ alignItems: 'flex-start', gap: 12, marginBottom: i < steps.length - 1 ? 14 : 0 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--primary)', color: 'var(--on-primary)', display: 'grid', placeItems: 'center', fontWeight: 800, flex: 'none' }}>{i + 1}</div>
+            <div><div className="bold">{t}</div><div className="small muted" style={{ lineHeight: 1.45 }}>{d}</div></div>
+          </div>
+        ))}
+      </div>
+      <div className="section-title">Ukuran struk</div>
+      <div className="card"><Seg value={s.paper} onChange={v => set({ paper: v })} options={[{ value: 58, label: '58 mm' }, { value: 80, label: '80 mm' }]} /></div>
+    </Page>
+  );
+}
+
 export default function Printer() {
   const p = usePrinter(); const s = useStore(st => st.settings); const set = useStore(st => st.setSettings); const logo = useStore(st => st.logo);
   const [bt, setBt] = useState(null);
@@ -38,11 +68,12 @@ export default function Printer() {
     catch (e) { fx('error'); toast(errText(e), { type: 'error', duration: 4500 }); }
   };
   const test = async () => {
-    try { await printBlocks(buildTestReceipt(s, { hasLogo: !!logo })); fx('print'); toast('Tes cetak berhasil dikirim'); }
+    try { if (await printBlocks(buildTestReceipt(s, { hasLogo: !!logo }), { name: 'tes-struk' }) === 'web') return; fx('print'); toast('Tes cetak berhasil dikirim'); }
     catch (e) { fx('error'); toast(e.message, { type: 'error' }); }
   };
   const grant = async () => { const r = await requestAccess().catch(() => ({ granted: false })); if (!r.granted) toast('Izin ditolak. Buka Pengaturan HP → Aplikasi → StrukKu → Izin → Perangkat di sekitar.', { type: 'error', duration: 6000 }); refresh(); };
   const connected = p.state === 'connected';
+  if (!isNative) return <WebPrinterInfo test={test} />;
 
   return (
     <Page title="Printer Bluetooth" sub={connected ? `Tersambung ke ${p.name}` : 'Sambungkan printer struk thermal'}
