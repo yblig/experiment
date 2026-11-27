@@ -5,7 +5,8 @@ import { nav, toast, confirmDialog } from '../ui.js';
 import { rp, fmtDate, fmtTime } from '../lib/format.js';
 import { fx } from '../lib/fx.js';
 import { Page, Header, Sheet, Field, Empty, useSelection, useLongPress, CheckCircle, SelectHeader, ActionBar, ActionBtn } from '../components/ui.jsx';
-import { CheckSquare } from 'lucide-react';
+import { CheckSquare, ShoppingBag } from 'lucide-react';
+import { pickCustomer } from '../components/CustomerPicker.jsx';
 import { shareFile, toCsv } from '../lib/share.js';
 import { FileDown } from 'lucide-react';
 import { ArtPeople, ArtReceipt } from '../components/art.jsx';
@@ -26,13 +27,15 @@ function stats(sales, c) {
 
 export function CustomerSheet({ customer, onClose }) {
   const [f, setF] = useState(null);
-  useEffect(() => { if (customer) setF({ name: '', phone: '', note: '', ...customer }); }, [customer]);
-  const save = () => { if (!f.name.trim()) return; useStore.getState().saveCustomer({ ...f, name: f.name.trim() }); fx('success'); toast('Pelanggan disimpan'); onClose(); };
+  useEffect(() => { if (customer) setF({ name: '', phone: '', address: '', discPct: 0, note: '', ...customer }); }, [customer]);
+  const save = () => { if (!f.name.trim()) return; useStore.getState().saveCustomer({ ...f, name: f.name.trim(), discPct: Math.min(100, Number(String(f.discPct).replace(',', '.')) || 0) }); fx('success'); toast('Pelanggan disimpan'); onClose(); };
   return (
     <Sheet open={!!customer} onClose={onClose} title={customer?.id ? 'Ubah pelanggan' : 'Pelanggan baru'} footer={<button className="btn primary block lg" disabled={!f?.name?.trim()} onClick={save}>Simpan</button>}>
       {f && <>
         <Field label="Nama"><input className="input" autoFocus value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Contoh: Bu Siti" /></Field>
         <Field label="No. HP / WhatsApp"><input className="input" inputMode="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="08xxxxxxxxxx" /></Field>
+        <Field label="Alamat" hint="Tercetak di struk & label"><input className="input" value={f.address || ''} onChange={e => setF({ ...f, address: e.target.value })} placeholder="Jl. Mawar No. 3, RT 02" /></Field>
+        <Field label="Diskon langganan (%)" hint="Otomatis dipakai saat pelanggan ini dipilih di kasir"><input className="input num" inputMode="decimal" value={f.discPct || ''} onChange={e => setF({ ...f, discPct: e.target.value.replace(/[^\d.,]/g, '') })} placeholder="0" /></Field>
         <Field label="Catatan"><textarea className="input" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} placeholder="Contoh: langganan katering kantor" /></Field>
       </>}
     </Sheet>
@@ -106,8 +109,11 @@ export function CustomerDetail({ id }) {
           <div><div className="tiny bold muted">Total belanja</div><div className="bold num" style={{ fontSize: '1.05rem' }}>{rp(st.spent)}</div></div>
           <div><div className="tiny bold muted">Kasbon</div><div className="bold num" style={{ fontSize: '1.05rem', color: st.debt ? '#C27C00' : 'var(--income)' }}>{st.debt ? rp(st.debt) : 'Lunas'}</div></div>
         </div>
+        {c.address && <div className="small mt12">📍 {c.address}</div>}
+        {c.discPct ? <div className="small bold prim mt8">Diskon langganan {c.discPct}%</div> : null}
         {c.note && <div className="small muted mt12">{c.note}</div>}
       </div>
+      <button className="btn primary block mt12" onClick={() => { const st = useStore.getState(); if (st.cart.items.length && st.cart.customerId !== c.id) st.holdCart(); pickCustomer(c); nav.root(); nav.tab('cashier'); }}><ShoppingBag size={20} /> Transaksi baru untuk {c.name}</button>
       <div className="row gap8 mt12">
         <button className="btn soft grow" onClick={() => setEdit(c)}>Ubah data</button>
         {c.phone && <button className="btn outline grow" onClick={() => { window.location.href = 'tel:' + c.phone; }}><Phone size={18} /> Telepon</button>}

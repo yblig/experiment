@@ -8,6 +8,7 @@ import { fx } from '../lib/fx.js';
 import { Header, Sheet, Field, MoneyInput, Seg, Empty, NumInput, useWide, DecimalPad } from '../components/ui.jsx';
 import { ArtBox } from '../components/art.jsx';
 import { ProductSheet } from './Products.jsx';
+import { CustomerField } from '../components/CustomerPicker.jsx';
 
 const toStr = n => (n ? String(Math.round(n * 100) / 100).replace('.', ',') : '');
 const toNum = s => Number(String(s || '').replace(',', '.')) || 0;
@@ -103,7 +104,7 @@ function CartContent({ onEdit, onWeigh }) {
   const [showDisc, setShowDisc] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
   const [customDue, setCustomDue] = useState(false);
-  const sugg = cart.customer && !cart.customerId ? customers.filter(x => x.name.toLowerCase().includes(cart.customer.toLowerCase()) && x.name !== cart.customer).slice(0, 4) : [];
+  const savedPhone = cart.customerId ? customers.find(x => x.id === cart.customerId)?.phone : '';
   useEffect(() => { if (s.trackOrders && cart.items.length && cart.due === null) setCart({ due: dueAt(s.dueDays ?? 2) }); }, [cart.items.length, s.trackOrders]);
   const laundry = s.bizType === 'laundry';
   const dueOpts = [[0, 'Hari ini'], [1, 'Besok'], [2, '2 hari'], [3, '3 hari']];
@@ -125,11 +126,8 @@ function CartContent({ onEdit, onWeigh }) {
       </div>
 
       <div className="card mt12" style={{ padding: 14 }}>
-        <Field label={s.trackOrders ? 'Nama pelanggan' : 'Nama pelanggan (opsional)'}>
-          <div className="input-wrap"><span className="prefix"><User size={18} /></span><input className="input" value={cart.customer} onChange={e => setCart({ customer: e.target.value, customerId: null })} placeholder="Contoh: Bu Ani" /></div>
-          {sugg.length > 0 && <div className="row gap8 mt8" style={{ flexWrap: 'wrap' }}>{sugg.map(x => <button key={x.id} className="chip" onClick={() => setCart({ customer: x.name, customerId: x.id, phone: x.phone || cart.phone })}>{x.name}</button>)}</div>}
-        </Field>
-        {s.trackOrders && (
+        <CustomerField required={s.trackOrders} />
+        {s.trackOrders && cart.customer && !savedPhone && (
           <Field label="No. HP / WhatsApp" hint="Untuk kabar saat pesanan sudah siap">
             <div className="input-wrap"><span className="prefix"><Phone size={18} /></span><input className="input" inputMode="tel" value={cart.phone || ''} onChange={e => setCart({ phone: e.target.value })} placeholder="08xxxxxxxxxx" /></div>
           </Field>

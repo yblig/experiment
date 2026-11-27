@@ -6,6 +6,7 @@ import { nav, toast } from '../ui.js';
 import { rp } from '../lib/format.js';
 import { fx } from '../lib/fx.js';
 import { Page, Field, MoneyInput } from '../components/ui.jsx';
+import { CustomerPicker, pickCustomer } from '../components/CustomerPicker.jsx';
 
 const M = [
   { id: 'cash', name: 'Tunai', icon: Banknote },
@@ -29,6 +30,7 @@ export default function Payment() {
   const [paid, setPaid] = useState(0);
   const [dp, setDp] = useState(0);
   const [cust, setCust] = useState(cart.customer || '');
+  const [pickOpen, setPickOpen] = useState(false);
   const sug = useMemo(() => suggestions(c.total, s.quickCash || []), [c.total]);
   const change = paid - c.total;
   const isCash = method === 'cash', isDebt = method === 'debt';
@@ -103,13 +105,15 @@ export default function Payment() {
         </div>
         <div className="mt16">
           <Field label="Nama pelanggan (wajib)">
-            <div className="input-wrap"><span className="prefix"><User size={18} /></span><input className="input" value={cust} onChange={e => setCust(e.target.value)} placeholder="Contoh: Pak Budi" /></div>
+            <div className="row gap8"><div className="input-wrap grow"><span className="prefix"><User size={18} /></span><input className="input" value={cust} onChange={e => { setCust(e.target.value); useStore.getState().setCart({ customerId: null }); }} placeholder="Contoh: Pak Budi" /></div>
+              <button className="btn soft" style={{ height: 54 }} onClick={() => setPickOpen(true)}>Pilih</button></div>
           </Field>
           <Field label="Bayar sebagian sekarang (opsional)" hint={dp ? `Sisa utang ${rp(Math.max(0, c.total - dp))}` : 'Kosongkan jika belum bayar sama sekali'}>
             <MoneyInput value={dp} onChange={v => { if (v >= c.total) { toast('Kalau dibayar penuh, pilih Tunai saja', { type: 'error' }); return; } setDp(v); }} />
           </Field>
         </div>
       </>}
+      <CustomerPicker open={pickOpen} onClose={() => setPickOpen(false)} onPick={c => { pickCustomer(c); setCust(c ? c.name : ''); }} />
     </Page>
   );
 }

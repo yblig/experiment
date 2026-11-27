@@ -86,6 +86,7 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   if (s.showCashier && (sale.cashier || s.cashier)) b.row('Kasir', sale.cashier || s.cashier);
   if (s.showCustomer && sale.customer) b.row('Pelanggan', sale.customer);
   if (s.showCustomer && sale.phone) b.row('No. HP', sale.phone);
+  if (s.showCustomer && sale.address) b.text('Alamat: ' + sale.address);
   if (sale.due) b.row('Selesai', dueFmt(sale.due), { bold: true });
   b.hr();
   for (const it of sale.items) {
@@ -128,6 +129,7 @@ export function buildLabelReceipt(sale, s, { index = 1, total = 1 } = {}) {
   b.hr();
   b.text(sale.customer || 'Tanpa nama', { align: 'c', big: true, bold: true });
   if (sale.phone) b.text(sale.phone, { align: 'c' });
+  if (sale.address) b.text(sale.address, { align: 'c' });
   b.row(sale.no, total > 1 ? `Kantong ${index}/${total}` : '', { bold: true });
   b.row('Masuk', fmtReceiptDate(sale.date));
   if (sale.due) b.row('Selesai', dueFmt(sale.due), { bold: true });

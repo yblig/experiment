@@ -173,7 +173,7 @@ export function sampleData(type = 'food') {
   return { categories: cats, products };
 }
 
-const emptyCart = () => ({ items: [], discType: 'pct', discVal: 0, customer: '', customerId: null, phone: '', note: '', heldId: null, due: null, extra: 0 });
+const emptyCart = () => ({ items: [], discType: 'pct', discVal: 0, customer: '', customerId: null, phone: '', address: '', note: '', heldId: null, due: null, extra: 0 });
 
 const blank = () => ({
   v: SCHEMA,
@@ -409,7 +409,7 @@ export const useStore = create((set, get) => ({
       status: debt && (paid || 0) < c.total ? 'debt' : 'paid',
       payments: debt && paid ? [{ date, amount: paid, method }] : [],
       customer: st.cart.customer || '', customerId: st.cart.customerId || null, note: st.cart.note || '',
-      cashier: s.cashier || '', phone: st.cart.phone || '',
+      cashier: s.cashier || '', phone: st.cart.phone || '', address: st.cart.address || '',
       due: st.cart.due || null, work: st.cart.due ? 'process' : null
     };
     const sold = {}; sale.items.forEach(i => { if (i.pid) sold[i.pid] = (sold[i.pid] || 0) + i.qty; });
@@ -421,6 +421,7 @@ export const useStore = create((set, get) => ({
     }
     if (sale.customerId && sale.phone) customers = customers.map(x => (x.id === sale.customerId && !x.phone ? { ...x, phone: sale.phone } : x));
     if (!sale.phone && sale.customerId) sale.phone = customers.find(x => x.id === sale.customerId)?.phone || '';
+    if (!sale.address && sale.customerId) sale.address = customers.find(x => x.id === sale.customerId)?.address || '';
     set({
       sales: [sale, ...st.sales], counter, cart: emptyCart(), customers, ...(queue ? { queue: { day, n: queue } } : {}),
       stockLog: logPush(st.stockLog, st.products.filter(p => sold[p.id] && p.stock != null).map(p => ({ pid: p.id, name: p.name, unit: p.unit, delta: -sold[p.id], type: 'sale', note: sale.no, after: Math.max(0, Math.round((p.stock - sold[p.id]) * 100) / 100), date }))),
@@ -483,7 +484,7 @@ export const useStore = create((set, get) => ({
       const p = i.pid && st.products.find(x => x.id === i.pid);
       return { key: uid(), pid: p ? p.id : null, custom: !p, name: p ? p.name : i.name, price: p ? p.price : (i.basePrice ?? i.price), cost: p ? p.cost || 0 : i.cost || 0, qty: i.qty, disc: 0, emoji: p ? p.emoji : i.emoji, unit: i.unit || 'pcs', wsMin: p?.wsMin || 0, wsPrice: p?.wsPrice || 0 };
     });
-    set({ cart: { ...emptyCart(), items, customer: sale.customer || '', customerId: sale.customerId || null, phone: sale.phone || '' } });
+    set({ cart: { ...emptyCart(), items, customer: sale.customer || '', customerId: sale.customerId || null, phone: sale.phone || '', address: sale.address || '' } });
     return items.length;
   },
 
