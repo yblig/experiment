@@ -102,6 +102,8 @@ export default function ReceiptSettings() {
         <Field label="Ukuran kertas printer"><Seg value={s.paper} onChange={v => set({ paper: v })} options={[{ value: 58, label: '58 mm (kecil)' }, { value: 80, label: '80 mm (besar)' }]} /></Field>
         <Row title="Tampilkan nama kasir"><Toggle on={s.showCashier} onChange={v => set({ showCashier: v })} /></Row>
         <Row title="Tampilkan nama pelanggan"><Toggle on={s.showCustomer} onChange={v => set({ showCustomer: v })} /></Row>
+        <Row title="Nomor antrian" sub="Nomor besar 001, 002… di struk, mulai dari 1 setiap hari"><Toggle on={!!s.queueNo} onChange={v => set({ queueNo: v })} /></Row>
+        <Row title="Tulisan “Anda hemat Rp…”" sub="Muncul jika ada diskon atau harga grosir"><Toggle on={s.showSaved !== false} onChange={v => set({ showSaved: v })} /></Row>
         <Field label="Awalan nomor struk" hint={`Contoh nomor: ${(s.prefix || 'INV').toUpperCase()}-261126-0001`}><input className="input" maxLength={6} value={s.prefix} onChange={e => set({ prefix: e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() })} /></Field>
         <Field label="Jumlah salinan setiap cetak"><Seg value={s.copies} onChange={v => set({ copies: v })} options={[{ value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }]} /></Field>
         <Field label="Jarak kosong setelah struk"><Seg value={s.feedLines} onChange={v => set({ feedLines: v })} options={[{ value: 2, label: 'Pendek' }, { value: 3, label: 'Sedang' }, { value: 5, label: 'Panjang' }]} /></Field>

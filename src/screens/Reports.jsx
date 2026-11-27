@@ -10,16 +10,20 @@ import { buildReportReceipt } from '../lib/receipt.js';
 import { printBlocks, usePrinter } from '../lib/printer.js';
 import { shareFile, toCsv } from '../lib/share.js';
 import { Page, Sheet, Empty } from '../components/ui.jsx';
+import { DateRangeChips, rangeOf, defaultRange } from './Sales.jsx';
+import { nav } from '../ui.js';
+import { DoorOpen, Clock, Users2, ChevronRight } from 'lucide-react';
 import { BarChart } from '../components/charts.jsx';
 import { ArtChart } from '../components/art.jsx';
 
 export default function Reports() {
   const st = useStore();
   const [period, setPeriod] = useState('today');
+  const [range, setRange] = useState(defaultRange);
   const [exp, setExp] = useState(false);
   const busy = usePrinter(p => p.busy);
-  const [from, to, label] = periodRange(period);
-  const rep = useMemo(() => computeReport(st, from, to, label), [st.sales, st.finance, period]);
+  const [from, to, label] = rangeOf(period, range);
+  const rep = useMemo(() => computeReport(st, from, to, label), [st.sales, st.finance, period, range]);
   const series = useMemo(() => dailySeries(st, 7), [st.sales, st.finance]);
   const margin = rep.omzet ? Math.round((rep.gross / rep.omzet) * 100) : 0;
 
@@ -62,9 +66,8 @@ export default function Reports() {
         <button className="btn outline grow" onClick={() => setExp(true)}><FileSpreadsheet size={20} /> Ekspor Excel</button>
         <button className="btn primary grow" disabled={busy} onClick={print}>{busy ? <Loader2 size={20} className="spin" /> : <Printer size={20} />} Cetak laporan</button>
       </div>}>
-      <div className="chips" style={{ paddingBottom: 12 }}>
-        {[['today', 'Hari ini'], ['yesterday', 'Kemarin'], ['7d', '7 hari'], ['month', 'Bulan ini'], ['lastmonth', 'Bulan lalu'], ['all', 'Semua']].map(([k, l]) => <button key={k} className={'chip' + (period === k ? ' on' : '')} onClick={() => { fx('tap'); setPeriod(k); }}>{l}</button>)}
-      </div>
+<DateRangeChips period={period} setPeriod={setPeriod} range={range} setRange={setRange} options={[['today', 'Hari ini'], ['yesterday', 'Kemarin'], ['7d', '7 hari'], ['month', 'Bulan ini'], ['lastmonth', 'Bulan lalu'], ['all', 'Semua']]} />
+      <div style={{ height: 6 }} />
       <div className="pad">
         <motion.div key={period} initial={{ opacity: 0.4, y: 6 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ background: rep.net >= 0 ? 'linear-gradient(150deg, var(--primary-2), var(--primary-dark))' : 'linear-gradient(150deg, #E86A5E, #B8382D)', color: '#fff' }}>
           <div className="row"><TrendingUp size={20} /><span className="small bold" style={{ opacity: 0.9 }}>Laba bersih · {label}</span></div>
@@ -93,6 +96,35 @@ export default function Reports() {
         {rep.count === 0 && rep.out === 0 && rep.otherIn === 0 ? (
           <Empty art={ArtChart} title="Belum ada data" text="Laporan akan terisi otomatis dari transaksi kasir dan catatan keuangan." />
         ) : <>
+          {rep.count > 0 && (() => { const max = Math.max(1, ...rep.hours.map(h => h.omzet)); const top = rep.hours.reduce((b, h, i) => (h.omzet > rep.hours[b].omzet ? i : b), 0); const from = rep.hours.findIndex(h => h.count); const to = 23 - [...rep.hours].reverse().findIndex(h => h.count); const span = rep.hours.slice(Math.max(0, from - 1), Math.min(24, to + 2)); const off = Math.max(0, from - 1); return <>
+            <div className="section-title">Jam paling ramai</div>
+            <div className="card">
+              <div className="small muted" style={{ marginBottom: 10 }}><Clock size={14} style={{ verticalAlign: -2 }} /> Paling ramai jam <b style={{ color: 'var(--text)' }}>{String(top).padStart(2, '0')}.00–{String(top + 1).padStart(2, '0')}.00</b> ({rep.hours[top].count} transaksi)</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 90 }}>
+                {span.map((h, i) => <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${Math.max(3, h.omzet / max * 100)}%` }} style={{ flex: 1, borderRadius: 5, background: off + i === top ? 'var(--accent)' : 'color-mix(in srgb, var(--primary) 45%, var(--surface2))' }} />)}
+              </div>
+              <div style={{ display: 'flex', gap: 3, marginTop: 6 }}>{span.map((h, i) => <div key={i} className="tiny muted" style={{ flex: 1, textAlign: 'center', fontSize: '.62rem' }}>{(off + i) % 3 === 0 ? off + i : ''}</div>)}</div>
+            </div>
+          </>; })()}
+          {rep.byCat.length > 1 && <>
+            <div className="section-title">Penjualan per kategori</div>
+            <div className="card">
+              {rep.byCat.map(c => { const pct = rep.omzet ? c.amount / rep.byCat.reduce((a, x) => a + x.amount, 0) : 0; return (
+                <div key={c.id} style={{ marginBottom: 10 }}>
+                  <div className="kv" style={{ padding: '2px 0' }}><span className="bold" style={{ color: 'var(--text)' }}><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: c.color, marginRight: 8 }} />{c.name}</span><span className="num bold">{rp(c.amount)} <span className="muted tiny">{Math.round(pct * 100)}%</span></span></div>
+                  <div style={{ height: 8, borderRadius: 4, background: 'var(--bg2)', overflow: 'hidden' }}><motion.div initial={{ width: 0 }} animate={{ width: `${pct * 100}%` }} style={{ height: '100%', background: c.color, borderRadius: 4 }} /></div>
+                </div>); })}
+            </div>
+          </>}
+          {rep.byCashier.length > 1 && <>
+            <div className="section-title">Penjualan per kasir</div>
+            <div className="list">{rep.byCashier.map(k => <div key={k.name} className="li"><div className="ic" style={{ background: 'var(--primary-soft)', color: 'var(--primary)', fontWeight: 800 }}>{k.name.slice(0, 1).toUpperCase()}</div><div className="grow"><div className="t">{k.name}</div><div className="s">{k.count} transaksi</div></div><b className="num">{rp(k.amount)}</b></div>)}</div>
+          </>}
+          {(rep.extra > 0 || rep.saved > 0) && <div className="card mt12">
+            {rep.extra > 0 && <div className="kv"><span>{st.settings.extraLabel || 'Biaya tambahan'} terkumpul</span><b className="num">{rp(rep.extra)}</b></div>}
+            {rep.saved > 0 && <div className="kv"><span>Total hemat pelanggan (diskon & grosir)</span><b className="num">{rp(rep.saved)}</b></div>}
+          </div>}
+          <button className="card row mt12" style={{ width: '100%', textAlign: 'left', gap: 12 }} onClick={() => nav.push('shift')}><DoorOpen size={22} color="var(--income)" /><div className="grow"><div className="bold">Buka / tutup kasir</div><div className="tiny muted">Cek uang laci & riwayat tutup kasir</div></div><ChevronRight size={18} className="chev" /></button>
           {rep.methods.length > 0 && <>
             <div className="section-title">Metode pembayaran</div>
             <div className="card">

@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Printer, ShoppingBag, ArrowDownCircle, ArrowUpCircle, Package, BarChart3, Lock, ChevronRight, AlertTriangle, PauseCircle, HandCoins, Bluetooth, Eye } from 'lucide-react';
 import { useStore } from '../store.js';
+import { Sheet } from '../components/ui.jsx';
+import { toast } from '../ui.js';
+import { ChevronDown, Target, DatabaseBackup, DoorOpen, DoorClosed } from 'lucide-react';
 import { useUI, nav } from '../ui.js';
 import { usePrinter, isNative } from '../lib/printer.js';
 import { storage } from '../lib/storage.js';
@@ -58,6 +61,10 @@ export default function Home() {
   const workLate = work.filter(x => x.work === 'process' && x.due && x.due < Date.now()).length;
   const debtTotal = debts.reduce((a, x) => a + x.total - (x.payments || []).reduce((b, p) => b + p.amount, 0), 0);
   const recent = st.sales.slice(0, 5);
+  const [pick, setPick] = useState(false);
+  const [newName, setNewName] = useState('');
+  const names = [...new Set([s.cashier, ...(s.cashiers || [])].filter(Boolean))];
+  const addName = () => { const n = newName.trim(); if (!n) return; useStore.getState().setSettings({ cashiers: [...new Set([...(s.cashiers || []), n])], cashier: n }); setNewName(''); fx('success'); setPick(false); toast(`Kasir sekarang: ${n}`); };
 
   const openFinance = async type => {
     const ok = await useUI.getState().requirePin('finance', 'Buka Keuangan'); if (!ok) return;
@@ -77,7 +84,7 @@ export default function Home() {
     <div className="page">
       <div className="header home">
         <div className="grow">
-          <div className="sub">{greeting()} 👋</div>
+          <button className="sub row" style={{ gap: 4 }} onClick={() => setPick(true)}>{greeting()}{s.cashier ? `, ${s.cashier}` : ''} 👋 <ChevronDown size={14} /></button>
           <h1 style={{ fontSize: '1.35rem' }}>{s.storeName || 'Toko Saya'}</h1>
         </div>
         <PrinterPill />
@@ -85,11 +92,28 @@ export default function Home() {
       <div className="scroll with-tabbar">
         <div className="pad">
           <InstallHint />
+          {st.sales.length >= 10 && Date.now() - (s.lastBackup || 0) > 7 * 864e5 && (
+            <button className="card row" style={{ width: '100%', textAlign: 'left', background: 'var(--accent-soft)', boxShadow: 'none', marginBottom: 12, gap: 12 }} onClick={async () => { if (await useUI.getState().requirePin('settings', 'Buka Pengaturan')) nav.push('backup'); }}>
+              <DatabaseBackup size={24} color="#C27C00" />
+              <div className="grow"><div className="bold">Cadangkan data Anda</div><div className="tiny muted">{s.lastBackup ? 'Sudah lebih dari 7 hari sejak cadangan terakhir' : 'Belum pernah membuat cadangan'} — supaya aman kalau HP rusak/hilang</div></div>
+              <ChevronRight size={20} className="chev" />
+            </button>
+          )}
+          <button className="card row" style={{ width: '100%', textAlign: 'left', padding: '12px 14px', marginBottom: 12, gap: 12, boxShadow: 'none', background: st.shift ? 'var(--income-soft)' : 'var(--surface2)', border: '1px solid var(--line)' }} onClick={() => nav.push('shift')}>
+            {st.shift ? <DoorOpen size={22} color="var(--income)" /> : <DoorClosed size={22} color="var(--muted)" />}
+            <div className="grow small"><b>{st.shift ? `Kasir buka sejak ${fmtTime(st.shift.openAt)}` : 'Kasir belum dibuka'}</b><span className="muted">{st.shift ? ` · ${st.shift.cashier || ''}` : ' · ketuk untuk buka & hitung uang laci'}</span></div>
+            <ChevronRight size={18} className="chev" />
+          </button>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ background: 'linear-gradient(150deg, var(--primary-2), var(--primary-dark))', color: '#fff', padding: 20, position: 'relative', overflow: 'hidden' }}>
             <svg width="190" height="190" viewBox="0 0 200 200" style={{ position: 'absolute', right: -50, top: -50, opacity: 0.12 }}><circle cx="100" cy="100" r="90" fill="none" stroke="#fff" strokeWidth="26" /><circle cx="100" cy="100" r="40" fill="#fff" /></svg>
             <div className="small" style={{ opacity: 0.85, fontWeight: 700 }}>Penjualan hari ini · {fmtDateLong(Date.now()).split(',')[0]}</div>
             <div className="num" style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-.02em', margin: '4px 0 2px' }}>{rp(today.omzet)}</div>
             <div className="small" style={{ opacity: 0.9, fontWeight: 600 }}>{today.count} transaksi · {today.qty} {s.bizType === 'laundry' || s.bizType === 'service' ? 'item' : 'barang terjual'}</div>
+            {s.dailyTarget > 0 && (() => { const pct = Math.min(100, Math.round(today.omzet / s.dailyTarget * 100)); return (
+              <div className="mt12">
+                <div className="row tiny bold" style={{ justifyContent: 'space-between', opacity: 0.95 }}><span><Target size={13} style={{ verticalAlign: -2 }} /> Target {rp(s.dailyTarget)}</span><span>{pct >= 100 ? 'Tercapai 🎉' : `${pct}%`}</span></div>
+                <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,.25)', marginTop: 6, overflow: 'hidden' }}><motion.div initial={{ width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: 0.8 }} style={{ height: '100%', borderRadius: 4, background: pct >= 100 ? '#FFD36B' : '#fff' }} /></div>
+              </div>); })()}
             <button className="btn block mt16" onClick={() => nav.tab('cashier')} style={{ background: '#fff', color: 'var(--primary-dark)', boxShadow: '0 6px 16px rgba(0,0,0,.15)' }}>
               <ShoppingBag size={21} /> Mulai Transaksi
             </button>
@@ -163,6 +187,15 @@ export default function Home() {
           )}
         </div>
       </div>
+      <Sheet open={pick} onClose={() => setPick(false)} title="Siapa yang jaga kasir?">
+        <p className="small muted" style={{ marginTop: 0 }}>Nama kasir tercetak di struk dan bisa dilihat di laporan per kasir.</p>
+        {names.length > 0 && <div className="list">{names.map(n => (
+          <button key={n} className="li" onClick={() => { useStore.getState().setSettings({ cashier: n }); fx('tap'); setPick(false); toast(`Kasir sekarang: ${n}`); }}>
+            <div className="ic" style={{ background: 'var(--primary-soft)', color: 'var(--primary)', fontWeight: 800 }}>{n.slice(0, 1).toUpperCase()}</div>
+            <div className="grow t">{n}</div>{s.cashier === n && <span className="tag green">Sedang jaga</span>}
+          </button>))}</div>}
+        <div className="row gap8 mt12"><input className="input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Tambah nama kasir" /><button className="btn primary sm" style={{ height: 54 }} disabled={!newName.trim()} onClick={addName}>Tambah</button></div>
+      </Sheet>
     </div>
   );
 }

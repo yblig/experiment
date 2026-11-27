@@ -4,7 +4,10 @@ import { useStore } from '../store.js';
 import { nav, toast, confirmDialog } from '../ui.js';
 import { rp, fmtDate, fmtTime } from '../lib/format.js';
 import { fx } from '../lib/fx.js';
-import { Page, Sheet, Field, Empty } from '../components/ui.jsx';
+import { Page, Header, Sheet, Field, Empty, useSelection, useLongPress, CheckCircle, SelectHeader, ActionBar, ActionBtn } from '../components/ui.jsx';
+import { CheckSquare } from 'lucide-react';
+import { shareFile, toCsv } from '../lib/share.js';
+import { FileDown } from 'lucide-react';
 import { ArtPeople, ArtReceipt } from '../components/art.jsx';
 import { SaleRow, paidOf, PayDebtSheet } from './Sales.jsx';
 
@@ -36,27 +39,55 @@ export function CustomerSheet({ customer, onClose }) {
   );
 }
 
+function CustRow({ c, spent, debt, count, sel }) {
+  const lp = useLongPress(() => { if (!sel.on) sel.start(c.id); });
+  const picked = sel.has(c.id);
+  return (
+    <button className="li" {...lp} style={picked ? { background: 'var(--primary-soft)' } : null}
+      onClick={() => { if (lp.wasLong()) return; if (sel.on) sel.toggle(c.id); else { fx('tap'); nav.push('customer', { id: c.id }); } }}>
+      {sel.on && <CheckCircle on={picked} />}
+      <div className="ic" style={{ background: 'var(--primary-soft)', color: 'var(--primary)', fontWeight: 800 }}>{c.name.slice(0, 1).toUpperCase()}</div>
+      <div className="grow" style={{ minWidth: 0 }}><div className="t ellipsis">{c.name}</div><div className="s">{count} transaksi · belanja {rp(spent)}{c.phone ? ` · ${c.phone}` : ''}</div></div>
+      {debt > 0 && <span className="tag amber">Kasbon {rp(debt)}</span>}
+      {!sel.on && <ChevronRight size={20} className="chev" />}
+    </button>
+  );
+}
+
 export function Customers() {
   const customers = useStore(s => s.customers); const sales = useStore(s => s.sales);
   const [q, setQ] = useState(''); const [edit, setEdit] = useState(null);
-  const list = useMemo(() => customers.filter(c => !q.trim() || c.name.toLowerCase().includes(q.trim().toLowerCase())).map(c => ({ c, ...stats(sales, c) })).sort((a, b) => b.spent - a.spent), [customers, sales, q]);
+  const sel = useSelection();
+  const list = useMemo(() => customers.filter(c => !q.trim() || c.name.toLowerCase().includes(q.trim().toLowerCase()) || (c.phone || '').includes(q.trim())).map(c => ({ c, ...stats(sales, c) })).sort((a, b) => b.spent - a.spent), [customers, sales, q]);
+  const ids = sel.ids();
+  const delSel = async () => {
+    if (!(await confirmDialog({ title: `Hapus ${ids.length} pelanggan?`, message: 'Riwayat transaksi mereka tetap tersimpan.', ok: `Hapus ${ids.length}`, danger: true }))) return;
+    const removed = useStore.getState().deleteCustomers(ids); fx('remove'); sel.clear();
+    toast(`${removed.length} pelanggan dihapus`, { action: { label: 'URUNGKAN', fn: () => useStore.getState().restoreCustomers(removed) } });
+  };
+  const exportSel = async () => {
+    const rows = [['Nama', 'No HP', 'Transaksi', 'Total belanja', 'Kasbon', 'Catatan'], ...list.filter(x => sel.has(x.c.id)).map(x => [x.c.name, x.c.phone, x.count, x.spent, x.debt, x.c.note])];
+    try { await shareFile('pelanggan.csv', toCsv(rows), { mime: 'text/csv', title: 'Ekspor pelanggan' }); fx('success'); } catch { /* cancelled */ }
+  };
   return (
-    <Page title="Pelanggan" sub={`${customers.length} pelanggan`} right={<button className="icon-btn solid" onClick={() => setEdit({})}><Plus size={22} /></button>}>
-      {customers.length === 0 ? <Empty art={ArtPeople} title="Belum ada pelanggan" text="Pelanggan tersimpan otomatis saat Anda mengisi nama pembeli di kasir. Bisa juga ditambah manual." action={<button className="btn primary" onClick={() => setEdit({})}><Plus size={20} /> Tambah Pelanggan</button>} /> : <>
-        <div className="search" style={{ marginBottom: 12 }}><Search size={20} /><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari pelanggan…" /></div>
-        <div className="list">
-          {list.map(({ c, spent, debt, count }) => (
-            <button key={c.id} className="li" onClick={() => { fx('tap'); nav.push('customer', { id: c.id }); }}>
-              <div className="ic" style={{ background: 'var(--primary-soft)', color: 'var(--primary)', fontWeight: 800 }}>{c.name.slice(0, 1).toUpperCase()}</div>
-              <div className="grow" style={{ minWidth: 0 }}><div className="t ellipsis">{c.name}</div><div className="s">{count} transaksi · belanja {rp(spent)}</div></div>
-              {debt > 0 && <span className="tag amber">Kasbon {rp(debt)}</span>}
-              <ChevronRight size={20} className="chev" />
-            </button>
-          ))}
-        </div>
-      </>}
+    <div className="page">
+      {sel.on ? <SelectHeader selection={sel} allIds={list.map(x => x.c.id)} label="pelanggan dipilih" />
+        : <Header title="Pelanggan" sub={`${customers.length} pelanggan`} right={<>
+          {customers.length > 0 && <button className="icon-btn solid" onClick={() => sel.start()} aria-label="Pilih banyak"><CheckSquare size={21} /></button>}
+          <button className="icon-btn solid" onClick={() => setEdit({})}><Plus size={22} /></button>
+        </>} />}
+      <div className="scroll" style={{ paddingBottom: 'calc(var(--safe-bottom) + 110px)' }}><div className="pad">
+        {customers.length === 0 ? <Empty art={ArtPeople} title="Belum ada pelanggan" text="Pelanggan tersimpan otomatis saat Anda mengisi nama pembeli di kasir. Bisa juga ditambah manual." action={<button className="btn primary" onClick={() => setEdit({})}><Plus size={20} /> Tambah Pelanggan</button>} /> : <>
+          <div className="search" style={{ marginBottom: 12 }}><Search size={20} /><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari nama atau no. HP…" /></div>
+          <div className="list">{list.map(x => <CustRow key={x.c.id} {...x} sel={sel} />)}</div>
+        </>}
+      </div></div>
+      <ActionBar show={sel.on}>
+        <ActionBtn icon={Trash2} label="Hapus" danger disabled={!ids.length} onClick={delSel} />
+        <ActionBtn icon={FileDown} label="Ekspor" disabled={!ids.length} onClick={exportSel} />
+      </ActionBar>
       <CustomerSheet customer={edit} onClose={() => setEdit(null)} />
-    </Page>
+    </div>
   );
 }
 

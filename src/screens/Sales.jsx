@@ -8,7 +8,12 @@ import { fx } from '../lib/fx.js';
 import { buildSaleReceipt, prepareImages, renderReceiptCanvas } from '../lib/receipt.js';
 import { printBlocks, usePrinter } from '../lib/printer.js';
 import { shareCanvas } from '../lib/share.js';
-import { Page, Header, ReceiptPaper, Empty, Sheet, Field, MoneyInput, Seg } from '../components/ui.jsx';
+import { Page, Header, ReceiptPaper, Empty, Sheet, Field, MoneyInput, Seg, useSelection, useLongPress, CheckCircle, SelectHeader, ActionBar, ActionBtn } from '../components/ui.jsx';
+import { buildLabelReceipt, blocksToText } from '../lib/receipt.js';
+import { shareFile, toCsv } from '../lib/share.js';
+import { isNative } from '../lib/printer.js';
+import { RotateCcw, MessageSquareText, Tag as TagIcon, FileDown, CalendarRange, Minus, Plus } from 'lucide-react';
+import { toDateInput, fromDateInput, fmtDate } from '../lib/format.js';
 import { ArtReceipt } from '../components/art.jsx';
 import { useWorkActions, workOf } from './Orders.jsx';
 import { dueLabel } from './Cashier.jsx';
@@ -25,14 +30,18 @@ export function StatusTag({ sale }) {
   return <span className="tag green">Lunas</span>;
 }
 
-export function SaleRow({ sale, time }) {
+export function SaleRow({ sale, time, sel }) {
   const Icon = MI[sale.method] || Banknote; const [c, bg] = MC[sale.method] || MC.cash;
+  const lp = useLongPress(() => { if (sel && !sel.on) sel.start(sale.id); });
+  const picked = sel?.has(sale.id);
   return (
-    <button className="li" onClick={() => { fx('tap'); nav.push('sale', { id: sale.id }); }} style={sale.status === 'void' ? { opacity: 0.55 } : null}>
+    <button className="li" {...(sel ? lp : {})} onClick={() => { if (sel && lp.wasLong()) return; if (sel?.on) { sel.toggle(sale.id); return; } fx('tap'); nav.push('sale', { id: sale.id }); }}
+      style={{ ...(sale.status === 'void' && !picked ? { opacity: 0.55 } : null), ...(picked ? { background: 'var(--primary-soft)' } : null) }}>
+      {sel?.on && <CheckCircle on={picked} />}
       <div className="ic" style={{ background: bg, color: c }}><Icon size={21} /></div>
       <div className="grow" style={{ minWidth: 0 }}>
         <div className="t ellipsis">{sale.customer || sale.items.map(i => i.name).join(', ')}</div>
-        <div className="s ellipsis">{time} · {sale.qty} barang · {methodName(sale.method)}</div>
+        <div className="s ellipsis">{time} · {sale.qty} item · {methodName(sale.method)}{sale.queue ? ` · antrian ${sale.queue}` : ''}{sale.cashier ? ` · ${sale.cashier}` : ''}</div>
       </div>
       <div className="col" style={{ alignItems: 'flex-end', gap: 4 }}>
         <div className="bold num" style={{ textDecoration: sale.status === 'void' ? 'line-through' : 'none' }}>{rp(sale.total)}</div>
@@ -59,6 +68,28 @@ export async function printSale(sale, copy = '') {
     }
     return false;
   }
+}
+
+export async function shareSaleText(sale) {
+  const st = useStore.getState();
+  const text = blocksToText(buildSaleReceipt(sale, { ...st.settings, paper: 58, showQr: false }, { hasLogo: false }), 58);
+  try { await shareFile(`struk-${sale.no}.txt`, text, { mime: 'text/plain', title: 'Kirim struk', text }); }
+  catch (e) { if (!/cancel|abort/i.test(e?.message || '')) toast('Gagal membagikan', { type: 'error' }); }
+}
+export function repeatOrder(sale) {
+  const st = useStore.getState();
+  if (st.cart.items.length) st.holdCart('Pesanan sebelumnya');
+  const n = st.repeatSale(sale.id);
+  fx('success'); toast(`${n} item dimasukkan ke kasir${st.held.length ? '' : ''}`);
+  nav.root(); useUI.getState().setTab('cashier');
+}
+export async function printLabels(sale, count) {
+  const st = useStore.getState();
+  for (let i = 1; i <= count; i++) {
+    const r = await printBlocks(buildLabelReceipt(sale, st.settings, { index: i, total: count }), { name: `label-${sale.no}-${i}` }).catch(e => { toast(e.message, { type: 'error' }); return 'err'; });
+    if (r === 'web' || r === 'err') return;
+  }
+  fx('print'); toast(count > 1 ? `${count} label dicetak` : 'Label dicetak');
 }
 
 export async function shareSale(sale) {
@@ -122,6 +153,7 @@ export function SaleDetail({ id }) {
   const sale = useStore(s => s.sales.find(x => x.id === id));
   const s = useStore(st => st.settings); const logo = useStore(st => st.logo);
   const [payOpen, setPayOpen] = useState(false);
+  const [labelOpen, setLabelOpen] = useState(false);
   const actions = useWorkActions();
   if (!sale) return <Page title="Transaksi"><Empty title="Transaksi tidak ditemukan" /></Page>;
   const blocks = buildSaleReceipt(sale, s, { hasLogo: !!logo });
@@ -162,6 +194,12 @@ export function SaleDetail({ id }) {
         <div className="bold small">Riwayat pembayaran</div>
         {sale.payments.map((p, i) => <div key={i} className="kv small"><span>{fmtDateTime(p.date)} · {methodName(p.method)}</span><span className="num">{rp(p.amount)}</span></div>)}
       </div>}
+      <div className="row gap8 mt12" style={{ flexWrap: 'wrap' }}>
+        <button className="btn sm soft grow" onClick={() => repeatOrder(sale)}><RotateCcw size={17} /> Ulangi pesanan</button>
+        <button className="btn sm outline grow" onClick={() => shareSaleText(sale)}><MessageSquareText size={17} /> Kirim teks</button>
+        {(sale.due || sale.work || useStore.getState().settings.trackOrders) && <button className="btn sm outline grow" onClick={() => setLabelOpen(true)}><TagIcon size={17} /> Cetak label</button>}
+      </div>
+      <LabelSheet sale={labelOpen ? sale : null} onClose={() => setLabelOpen(false)} />
       <div className="section-title">Struk</div>
       <ReceiptPaper blocks={blocks} />
       {sale.status !== 'void' && <button className="btn ghost block mt24" style={{ color: 'var(--expense)' }} onClick={doVoid}><Ban size={20} /> Batalkan transaksi</button>}
@@ -191,32 +229,94 @@ export function PayDebtSheet({ sale, onClose }) {
 }
 
 // ---------- history tab ----------
+function LabelSheet({ sale, onClose }) {
+  const [n, setN] = useState(1);
+  const s = useStore(st => st.settings);
+  useEffect(() => { if (sale) setN(1); }, [sale?.id]);
+  return (
+    <Sheet open={!!sale} onClose={onClose} title="Cetak label" footer={<button className="btn primary block lg" onClick={() => { printLabels(sale, n); onClose(); }}><Printer size={20} /> Cetak {n} label</button>}>
+      {sale && <>
+        <p className="small muted" style={{ marginTop: 0 }}>Label kecil untuk ditempel di {s.bizType === 'laundry' ? 'kantong cucian' : 'pesanan'}: nama pelanggan, no. nota, jumlah & tanggal selesai.</p>
+        <Field label={s.bizType === 'laundry' ? 'Jumlah kantong' : 'Jumlah label'}>
+          <div className="row" style={{ justifyContent: 'center', gap: 16 }}>
+            <button className="icon-btn solid" onClick={() => setN(Math.max(1, n - 1))}><Minus size={20} /></button>
+            <div className="bold num" style={{ fontSize: '2rem', minWidth: 50, textAlign: 'center' }}>{n}</div>
+            <button className="icon-btn solid" onClick={() => setN(Math.min(20, n + 1))}><Plus size={20} /></button>
+          </div>
+        </Field>
+        <div style={{ background: 'var(--bg2)', borderRadius: 20, padding: '14px 10px' }}><ReceiptPaper blocks={buildLabelReceipt(sale, s, { index: 1, total: n })} /></div>
+      </>}
+    </Sheet>
+  );
+}
+
+export function DateRangeChips({ period, setPeriod, range, setRange, options }) {
+  return (
+    <>
+      <div className="chips" style={{ paddingBottom: period === 'custom' ? 8 : 6 }}>
+        {options.map(([k, l]) => <button key={k} className={'chip' + (period === k ? ' on' : '')} onClick={() => { fx('tap'); setPeriod(k); }}>{l}</button>)}
+        <button className={'chip' + (period === 'custom' ? ' on' : '')} onClick={() => { fx('tap'); setPeriod('custom'); }}><CalendarRange size={15} /> Pilih tanggal</button>
+      </div>
+      {period === 'custom' && (
+        <div className="pad row gap8" style={{ paddingBottom: 8 }}>
+          <input type="date" className="input" value={range[0]} max={range[1]} onChange={e => e.target.value && setRange([e.target.value, range[1]])} />
+          <span className="muted bold">–</span>
+          <input type="date" className="input" value={range[1]} min={range[0]} onChange={e => e.target.value && setRange([range[0], e.target.value])} />
+        </div>
+      )}
+    </>
+  );
+}
+export function rangeOf(period, range) {
+  if (period !== 'custom') return periodRange(period);
+  const from = new Date(fromDateInput(range[0])).setHours(0, 0, 0, 0);
+  const to = new Date(fromDateInput(range[1])).setHours(0, 0, 0, 0) + 864e5;
+  return [from, to, range[0] === range[1] ? fmtDate(from) : `${fmtDate(from)} – ${fmtDate(to - 1)}`];
+}
+export const defaultRange = () => [toDateInput(Date.now() - 6 * 864e5), toDateInput(Date.now())];
+
 export function History() {
   const sales = useStore(s => s.sales);
   const [q, setQ] = useState(''); const [status, setStatus] = useState('all'); const [period, setPeriod] = useState('all');
+  const [range, setRange] = useState(defaultRange);
+  const sel = useSelection();
   const filtered = useMemo(() => {
-    const [from, to] = periodRange(period);
+    const [from, to] = rangeOf(period, range);
     const t = q.trim().toLowerCase();
     return sales.filter(x => x.date >= from && x.date < to
       && (status === 'all' || x.status === status)
       && (!t || x.no.toLowerCase().includes(t) || (x.customer || '').toLowerCase().includes(t) || x.items.some(i => i.name.toLowerCase().includes(t))));
-  }, [sales, q, status, period]);
+  }, [sales, q, status, period, range]);
   const groups = useMemo(() => {
     const m = new Map();
     filtered.forEach(x => { const k = dayKey(x.date); if (!m.has(k)) m.set(k, []); m.get(k).push(x); });
     return [...m.entries()];
   }, [filtered]);
   const total = filtered.filter(x => x.status !== 'void').reduce((a, x) => a + x.total, 0);
+  const chosen = filtered.filter(x => sel.has(x.id));
+  const chosenTotal = chosen.filter(x => x.status !== 'void').reduce((a, x) => a + x.total, 0);
+  const exportSel = async () => {
+    const rows = [['No Struk', 'Tanggal', 'Jam', 'Pelanggan', 'Barang', 'Total', 'Metode', 'Status']];
+    chosen.forEach(x => rows.push([x.no, fmtDate(x.date), fmtTime(x.date), x.customer, x.items.map(i => `${i.qty} ${i.name}`).join(', '), x.total, methodName(x.method), x.status === 'void' ? 'Batal' : x.status === 'debt' ? 'Belum lunas' : 'Lunas']));
+    try { await shareFile(`transaksi-terpilih-${toDateInput(Date.now())}.csv`, toCsv(rows), { mime: 'text/csv', title: 'Ekspor transaksi' }); fx('success'); }
+    catch (e) { if (!/cancel|abort/i.test(e?.message || '')) toast('Gagal ekspor', { type: 'error' }); }
+  };
+  const summary = async () => {
+    const st = useStore.getState().settings;
+    const text = `*${st.storeName}* — Rekap ${chosen.length} transaksi\n` + chosen.map(x => `• ${x.no} ${x.customer ? '(' + x.customer + ') ' : ''}${rp(x.total)}${x.status === 'void' ? ' [batal]' : x.status === 'debt' ? ' [belum lunas]' : ''}`).join('\n') + `\n\n*Total: ${rp(chosenTotal)}*`;
+    try { await shareFile('rekap.txt', text, { mime: 'text/plain', title: 'Rekap transaksi', text }); } catch { /* cancelled */ }
+  };
+  const reprint = async () => { for (const x of chosen) { const ok = await printSale(x, 'SALINAN / CETAK ULANG'); if (!ok) break; } sel.clear(); };
   return (
     <div className="page">
-      <Header title="Riwayat Transaksi" sub={`${filtered.length} transaksi · ${rp(total)}`} back={false} />
+      {sel.on ? <SelectHeader selection={sel} allIds={filtered.map(x => x.id)} label={`dipilih · ${rp(chosenTotal)}`} />
+        : <Header title="Riwayat Transaksi" sub={`${filtered.length} transaksi · ${rp(total)}`} back={false}
+          right={filtered.length > 0 ? <button className="icon-btn solid" onClick={() => sel.start()} aria-label="Pilih banyak"><CheckCircle2 size={21} /></button> : null} />}
       <div className="pad" style={{ paddingBottom: 10 }}>
         <div className="search"><Search size={20} /><input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari no. struk, pelanggan, barang…" />
           {q && <button onClick={() => setQ('')} style={{ position: 'absolute', right: 12, top: 13 }}><X size={20} color="var(--muted)" /></button>}</div>
       </div>
-      <div className="chips" style={{ paddingBottom: 6 }}>
-        {[['all', 'Semua waktu'], ['today', 'Hari ini'], ['yesterday', 'Kemarin'], ['7d', '7 hari'], ['month', 'Bulan ini']].map(([k, l]) => <button key={k} className={'chip' + (period === k ? ' on' : '')} onClick={() => { fx('tap'); setPeriod(k); }}>{l}</button>)}
-      </div>
+      <DateRangeChips period={period} setPeriod={setPeriod} range={range} setRange={setRange} options={[['all', 'Semua waktu'], ['today', 'Hari ini'], ['yesterday', 'Kemarin'], ['7d', '7 hari'], ['month', 'Bulan ini']]} />
       <div className="chips" style={{ paddingBottom: 10 }}>
         {[['all', 'Semua status'], ['paid', 'Lunas'], ['debt', 'Kasbon'], ['void', 'Dibatalkan']].map(([k, l]) => <button key={k} className={'chip' + (status === k ? ' on' : '')} onClick={() => { fx('tap'); setStatus(k); }}>{l}</button>)}
       </div>
@@ -227,10 +327,15 @@ export function History() {
         ) : groups.map(([k, list]) => (
           <div key={k}>
             <div className="section-title"><span>{relDay(k)}</span><span className="num" style={{ textTransform: 'none', letterSpacing: 0 }}>{rp(list.filter(x => x.status !== 'void').reduce((a, x) => a + x.total, 0))}</span></div>
-            <div className="list">{list.map(x => <SaleRow key={x.id} sale={x} time={fmtTime(x.date)} />)}</div>
+            <div className="list">{list.map(x => <SaleRow key={x.id} sale={x} time={fmtTime(x.date)} sel={sel} />)}</div>
           </div>
         ))}
       </div></div>
+      <ActionBar show={sel.on}>
+        <ActionBtn icon={FileDown} label="Ekspor" disabled={!chosen.length} onClick={exportSel} />
+        <ActionBtn icon={MessageSquareText} label="Kirim rekap" disabled={!chosen.length} onClick={summary} />
+        {isNative && <ActionBtn icon={Printer} label="Cetak ulang" disabled={!chosen.length} onClick={reprint} />}
+      </ActionBar>
     </div>
   );
 }

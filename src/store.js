@@ -45,7 +45,14 @@ export const DEFAULT_SETTINGS = {
   quickCash: [10000, 20000, 50000, 100000],
   bizType: 'food',
   trackOrders: false,
-  dueDays: 2
+  dueDays: 2,
+  rounding: 0,
+  queueNo: false,
+  showSaved: true,
+  dailyTarget: 0,
+  cashiers: [],
+  lastBackup: 0,
+  extraLabel: 'Ongkos kirim'
 };
 
 // ---------- business types & units ----------
@@ -166,7 +173,7 @@ export function sampleData(type = 'food') {
   return { categories: cats, products };
 }
 
-const emptyCart = () => ({ items: [], discType: 'pct', discVal: 0, customer: '', customerId: null, phone: '', note: '', heldId: null, due: null });
+const emptyCart = () => ({ items: [], discType: 'pct', discVal: 0, customer: '', customerId: null, phone: '', note: '', heldId: null, due: null, extra: 0 });
 
 const blank = () => ({
   v: SCHEMA,
@@ -178,11 +185,18 @@ const blank = () => ({
   customers: [],
   held: [],
   counter: 0,
+  stockLog: [],
+  shifts: [],
+  shift: null,
+  queue: { day: 0, n: 0 },
   cart: emptyCart()
 });
 
+// Effective unit price: wholesale (grosir) price kicks in at the minimum quantity
+export const unitPrice = i => (i.wsMin && i.wsPrice && !i.priceEdited && i.qty >= i.wsMin ? i.wsPrice : i.price);
+
 export function calcCart(cart, s) {
-  const lines = cart.items.map(i => ({ ...i, total: Math.max(0, Math.round(i.price * i.qty) - (i.disc || 0)) }));
+  const lines = cart.items.map(i => { const price = unitPrice(i); return { ...i, basePrice: i.price, price, grosir: price !== i.price, total: Math.max(0, Math.round(price * i.qty) - (i.disc || 0)) }; });
   const subtotal = lines.reduce((a, l) => a + l.total, 0);
   const qty = lines.reduce((a, l) => a + (isDec(l.unit) ? 1 : l.qty), 0); // item count (a weighed line counts once)
   let discount = cart.discType === 'pct' ? Math.round(subtotal * (Number(cart.discVal) || 0) / 100) : Number(cart.discVal) || 0;
@@ -190,9 +204,34 @@ export function calcCart(cart, s) {
   const after = subtotal - discount;
   const service = Math.round(after * (Number(s.servicePct) || 0) / 100);
   const tax = Math.round((after + service) * (Number(s.taxPct) || 0) / 100);
-  const total = after + service + tax;
+  const extra = Math.max(0, Number(cart.extra) || 0);
+  const raw = after + service + tax + extra;
+  const r = Number(s.rounding) || 0;
+  const total = r ? Math.round(raw / r) * r : raw;
+  const roundAdj = total - raw;
   const cost = Math.round(lines.reduce((a, l) => a + (l.cost || 0) * l.qty, 0));
-  return { lines, subtotal, qty, discount, service, tax, total, cost };
+  const saved = Math.round(lines.reduce((a, l) => a + (l.basePrice - l.price) * l.qty + (l.disc || 0), 0) + discount);
+  return { lines, subtotal, qty, discount, service, tax, extra, roundAdj, total, cost, saved };
+}
+
+function logPush(log, entries) {
+  if (!entries.length) return log;
+  return [...entries.map(e => ({ id: uid(), ...e })), ...(log || [])].slice(0, 1500);
+}
+
+export function shiftSummary(st, sh) {
+  const from = sh.openAt, to = sh.closeAt || Date.now();
+  const sales = st.sales.filter(x => x.date >= from && x.date < to && x.status !== 'void');
+  const cashSales = sales.filter(x => x.method === 'cash').reduce((a, x) => a + x.total, 0);
+  const nonCash = sales.filter(x => x.method !== 'cash' && x.method !== 'debt').reduce((a, x) => a + x.total, 0);
+  let cashDebtPaid = 0;
+  st.sales.forEach(x => (x.payments || []).forEach(p => { if (p.date >= from && p.date < to && (p.method || 'cash') === 'cash') cashDebtPaid += p.amount; }));
+  const fin = st.finance.filter(f => f.date >= from && f.date < to);
+  const otherIn = fin.filter(f => f.type === 'in').reduce((a, f) => a + f.amount, 0);
+  const out = fin.filter(f => f.type === 'out').reduce((a, f) => a + f.amount, 0);
+  const debtNew = sales.filter(x => x.method === 'debt').reduce((a, x) => a + x.total, 0);
+  const expected = (sh.openCash || 0) + cashSales + cashDebtPaid + otherIn - out;
+  return { count: sales.length, omzet: sales.reduce((a, x) => a + x.total, 0), cashSales, nonCash, cashDebtPaid, otherIn, out, debtNew, expected };
 }
 
 function receiptNo(s, n, ts) {
@@ -232,7 +271,76 @@ export const useStore = create((set, get) => ({
   },
   deleteProduct(id) { set(st => ({ products: st.products.filter(p => p.id !== id) })); },
   restoreProduct(p) { set(st => ({ products: [...st.products, p] })); },
-  adjustStock(id, delta) { set(st => ({ products: st.products.map(p => (p.id === id && p.stock != null ? { ...p, stock: Math.max(0, Math.round((p.stock + delta) * 100) / 100) } : p)) })); },
+  adjustStock(id, delta, type = 'adjust', note = '') {
+    set(st => {
+      const p = st.products.find(x => x.id === id); if (!p || p.stock == null) return {};
+      const after = Math.max(0, Math.round((p.stock + delta) * 100) / 100);
+      return { products: st.products.map(x => (x.id === id ? { ...x, stock: after } : x)), stockLog: logPush(st.stockLog, [{ pid: id, name: p.name, unit: p.unit, delta: Math.round((after - p.stock) * 100) / 100, type, note, after, date: Date.now() }]) };
+    });
+  },
+  // Stock in (restock). Optionally records the purchase as an expense and updates the cost price.
+  restock(id, qty, { totalCost = 0, asExpense = true, updateCost = true, note = '' } = {}) {
+    const st = get(); const p = st.products.find(x => x.id === id); if (!p || !qty) return;
+    const after = Math.round(((p.stock ?? 0) + qty) * 100) / 100;
+    const unitCost = totalCost && qty ? Math.round(totalCost / qty) : 0;
+    set({
+      products: st.products.map(x => (x.id === id ? { ...x, stock: after, ...(updateCost && unitCost ? { cost: unitCost } : {}) } : x)),
+      stockLog: logPush(st.stockLog, [{ pid: id, name: p.name, unit: p.unit, delta: qty, type: 'in', note: note || (totalCost ? `Beli Rp${totalCost.toLocaleString('id-ID')}` : ''), after, date: Date.now() }]),
+      finance: asExpense && totalCost ? [{ id: uid(), type: 'out', amount: totalCost, cat: 'bahan', note: `Stok masuk: ${p.name} ${fmtQty(qty, p.unit)}`, date: Date.now() }, ...st.finance] : st.finance
+    });
+  },
+  // Stock count (opname): entries = [{ id, actual }]
+  opname(entries) {
+    const st = get(); const now = Date.now(); const logs = []; const map = new Map(entries.map(e => [e.id, e.actual]));
+    const products = st.products.map(p => {
+      if (!map.has(p.id) || p.stock == null) return p;
+      const actual = Math.max(0, Number(map.get(p.id)) || 0); const delta = Math.round((actual - p.stock) * 100) / 100;
+      if (delta) logs.push({ pid: p.id, name: p.name, unit: p.unit, delta, type: 'opname', note: 'Stok opname', after: actual, date: now });
+      return { ...p, stock: actual };
+    });
+    set({ products, stockLog: logPush(st.stockLog, logs) });
+    return logs.length;
+  },
+  deleteProducts(ids) { const set_ = new Set(ids); const st = get(); const removed = st.products.filter(p => set_.has(p.id)); set({ products: st.products.filter(p => !set_.has(p.id)) }); return removed; },
+  restoreProducts(list) { set(st => ({ products: [...st.products, ...list.filter(p => !st.products.some(x => x.id === p.id))] })); },
+  bulkProducts(ids, fn) { const set_ = new Set(ids); set(st => ({ products: st.products.map(p => (set_.has(p.id) ? { ...p, ...fn(p) } : p)) })); },
+  bulkStock(ids, mode, value) {
+    const st = get(); const set_ = new Set(ids); const now = Date.now(); const logs = [];
+    const products = st.products.map(p => {
+      if (!set_.has(p.id)) return p;
+      const cur = p.stock ?? 0;
+      const after = Math.max(0, Math.round((mode === 'set' ? value : mode === 'add' ? cur + value : cur - value) * 100) / 100);
+      const delta = Math.round((after - (p.stock ?? 0)) * 100) / 100;
+      if (delta || p.stock == null) logs.push({ pid: p.id, name: p.name, unit: p.unit, delta, type: mode === 'set' ? 'opname' : mode === 'add' ? 'in' : 'adjust', note: 'Ubah stok massal', after, date: now });
+      return { ...p, stock: after };
+    });
+    set({ products, stockLog: logPush(st.stockLog, logs) });
+  },
+  duplicateProduct(id) {
+    const p = get().products.find(x => x.id === id); if (!p) return null;
+    const copy = { ...p, id: uid(), name: p.name + ' (salinan)', sold: 0, created: Date.now() };
+    set(st => ({ products: [...st.products, copy] }));
+    return copy;
+  },
+  importProducts(rows) {
+    const st = get(); let cats = [...st.categories]; let added = 0, updated = 0;
+    let products = [...st.products];
+    for (const r of rows) {
+      if (!r.name) continue;
+      let catId = null;
+      if (r.category) {
+        let c = cats.find(x => x.name.toLowerCase() === r.category.toLowerCase());
+        if (!c) { c = { id: uid(), name: r.category, color: COLORS[cats.length % COLORS.length] }; cats = [...cats, c]; }
+        catId = c.id;
+      }
+      const i = products.findIndex(p => (r.sku && p.sku === r.sku) || p.name.toLowerCase() === r.name.toLowerCase());
+      const data = { name: r.name, price: r.price || 0, cost: r.cost || 0, ...(r.stock != null ? { stock: r.stock } : {}), ...(catId ? { catId } : {}), unit: r.unit || 'pcs', ...(r.sku ? { sku: r.sku } : {}) };
+      if (i >= 0) { products[i] = { ...products[i], ...data }; updated++; }
+      else { products.push({ id: uid(), sold: 0, fav: false, emoji: '', stock: null, catId: null, created: Date.now(), ...data }); added++; }
+    }
+    set({ products, categories: cats });
+    return { added, updated };
+  },
   toggleFav(id) { set(st => ({ products: st.products.map(p => (p.id === id ? { ...p, fav: !p.fav } : p)) })); },
   saveCategory(c) {
     set(st => {
@@ -249,7 +357,7 @@ export const useStore = create((set, get) => ({
       const items = [...st.cart.items];
       const i = items.findIndex(x => x.pid === p.id && !x.custom);
       if (i >= 0) items[i] = { ...items[i], qty: Math.round((items[i].qty + qty) * 100) / 100 };
-      else items.push({ key: uid(), pid: p.id, name: p.name, price: p.price, cost: p.cost || 0, qty, disc: 0, emoji: p.emoji, unit: p.unit || 'pcs' });
+      else items.push({ key: uid(), pid: p.id, name: p.name, price: p.price, cost: p.cost || 0, qty, disc: 0, emoji: p.emoji, unit: p.unit || 'pcs', wsMin: p.wsMin || 0, wsPrice: p.wsPrice || 0 });
       return { cart: { ...st.cart, items } };
     });
   },
@@ -289,9 +397,12 @@ export const useStore = create((set, get) => ({
     const c = calcCart(st.cart, s);
     const date = Date.now();
     const counter = st.counter + 1;
+    const day = new Date(date).setHours(0, 0, 0, 0);
+    const queue = s.queueNo ? (st.queue.day === day ? st.queue.n + 1 : 1) : null;
     const sale = {
       id: uid(), no: receiptNo(s, counter, date), date,
-      items: c.lines.map(l => ({ pid: l.pid, name: l.name, price: l.price, cost: l.cost || 0, qty: l.qty, unit: l.unit || 'pcs', disc: l.disc || 0, total: l.total, emoji: l.emoji })),
+      items: c.lines.map(l => ({ pid: l.pid, name: l.name, price: l.price, basePrice: l.basePrice, grosir: l.grosir, cost: l.cost || 0, qty: l.qty, unit: l.unit || 'pcs', disc: l.disc || 0, total: l.total, emoji: l.emoji })),
+      extra: c.extra, extraLabel: c.extra ? (s.extraLabel || 'Biaya tambahan') : '', roundAdj: c.roundAdj, saved: c.saved, queue, shiftId: st.shift?.id || null,
       qty: c.qty, subtotal: c.subtotal, discount: c.discount, discLabel: st.cart.discType === 'pct' && st.cart.discVal ? `${st.cart.discVal}%` : '',
       service: c.service, servicePct: s.servicePct, tax: c.tax, taxPct: s.taxPct, total: c.total, cost: c.cost,
       method: debt ? 'debt' : method, paid: debt ? (paid || 0) : paid, change: debt ? 0 : Math.max(0, paid - c.total),
@@ -311,7 +422,8 @@ export const useStore = create((set, get) => ({
     if (sale.customerId && sale.phone) customers = customers.map(x => (x.id === sale.customerId && !x.phone ? { ...x, phone: sale.phone } : x));
     if (!sale.phone && sale.customerId) sale.phone = customers.find(x => x.id === sale.customerId)?.phone || '';
     set({
-      sales: [sale, ...st.sales], counter, cart: emptyCart(), customers,
+      sales: [sale, ...st.sales], counter, cart: emptyCart(), customers, ...(queue ? { queue: { day, n: queue } } : {}),
+      stockLog: logPush(st.stockLog, st.products.filter(p => sold[p.id] && p.stock != null).map(p => ({ pid: p.id, name: p.name, unit: p.unit, delta: -sold[p.id], type: 'sale', note: sale.no, after: Math.max(0, Math.round((p.stock - sold[p.id]) * 100) / 100), date }))),
       products: st.products.map(p => (sold[p.id] ? { ...p, sold: Math.round(((p.sold || 0) + sold[p.id]) * 100) / 100, stock: p.stock != null ? Math.max(0, Math.round((p.stock - sold[p.id]) * 100) / 100) : null } : p))
     });
     return sale;
@@ -326,7 +438,8 @@ export const useStore = create((set, get) => ({
     const back = {}; sale.items.forEach(i => { if (i.pid) back[i.pid] = (back[i.pid] || 0) + i.qty; });
     set({
       sales: st.sales.map(x => (x.id === id ? { ...x, status: 'void', voidAt: Date.now(), voidReason: reason } : x)),
-      products: st.products.map(p => (back[p.id] ? { ...p, sold: Math.max(0, (p.sold || 0) - back[p.id]), stock: p.stock != null ? p.stock + back[p.id] : null } : p))
+      products: st.products.map(p => (back[p.id] ? { ...p, sold: Math.max(0, (p.sold || 0) - back[p.id]), stock: p.stock != null ? Math.round((p.stock + back[p.id]) * 100) / 100 : null } : p)),
+      stockLog: logPush(st.stockLog, st.products.filter(p => back[p.id] && p.stock != null).map(p => ({ pid: p.id, name: p.name, unit: p.unit, delta: back[p.id], type: 'void', note: sale.no, after: Math.round((p.stock + back[p.id]) * 100) / 100, date: Date.now() })))
     });
   },
   payDebt(id, amount, method = 'cash') {
@@ -348,6 +461,8 @@ export const useStore = create((set, get) => ({
     });
   },
   deleteFinance(id) { set(st => ({ finance: st.finance.filter(f => f.id !== id) })); },
+  deleteFinances(ids) { const k = new Set(ids); const st = get(); const removed = st.finance.filter(f => k.has(f.id)); set({ finance: st.finance.filter(f => !k.has(f.id)) }); return removed; },
+  restoreFinances(list) { set(st => ({ finance: [...list, ...st.finance].sort((a, b) => b.date - a.date) })); },
   restoreFinance(f) { set(st => ({ finance: [f, ...st.finance].sort((a, b) => b.date - a.date) })); },
 
   // ---------- customers ----------
@@ -358,9 +473,36 @@ export const useStore = create((set, get) => ({
     });
   },
   deleteCustomer(id) { set(st => ({ customers: st.customers.filter(c => c.id !== id) })); },
+  deleteCustomers(ids) { const k = new Set(ids); const st = get(); const removed = st.customers.filter(c => k.has(c.id)); set({ customers: st.customers.filter(c => !k.has(c.id)) }); return removed; },
+  restoreCustomers(list) { set(st => ({ customers: [...st.customers, ...list] })); },
+
+  // ---------- repeat order ----------
+  repeatSale(id) {
+    const st = get(); const sale = st.sales.find(x => x.id === id); if (!sale) return 0;
+    const items = sale.items.map(i => {
+      const p = i.pid && st.products.find(x => x.id === i.pid);
+      return { key: uid(), pid: p ? p.id : null, custom: !p, name: p ? p.name : i.name, price: p ? p.price : (i.basePrice ?? i.price), cost: p ? p.cost || 0 : i.cost || 0, qty: i.qty, disc: 0, emoji: p ? p.emoji : i.emoji, unit: i.unit || 'pcs', wsMin: p?.wsMin || 0, wsPrice: p?.wsPrice || 0 };
+    });
+    set({ cart: { ...emptyCart(), items, customer: sale.customer || '', customerId: sale.customerId || null, phone: sale.phone || '' } });
+    return items.length;
+  },
+
+  // ---------- shifts (buka / tutup kasir) ----------
+  openShift(openCash, cashier) {
+    const sh = { id: uid(), openAt: Date.now(), openCash: Number(openCash) || 0, cashier: cashier || get().settings.cashier || '' };
+    set({ shift: sh });
+    return sh;
+  },
+  closeShift(countedCash, note = '') {
+    const st = get(); if (!st.shift) return null;
+    const sum = shiftSummary(st, st.shift);
+    const done = { ...st.shift, closeAt: Date.now(), countedCash: Number(countedCash) || 0, expected: sum.expected, diff: (Number(countedCash) || 0) - sum.expected, summary: sum, note };
+    set({ shift: null, shifts: [done, ...st.shifts].slice(0, 200) });
+    return done;
+  },
 
   // ---------- data ----------
-  exportData() { const st = get(); return { app: 'StrukKu', v: SCHEMA, exported: Date.now(), settings: st.settings, categories: st.categories, products: st.products, sales: st.sales, finance: st.finance, customers: st.customers, held: st.held, counter: st.counter, logo: st.logo }; },
+  exportData() { const st = get(); return { app: 'StrukKu', v: SCHEMA, exported: Date.now(), settings: st.settings, categories: st.categories, products: st.products, sales: st.sales, finance: st.finance, customers: st.customers, held: st.held, counter: st.counter, stockLog: st.stockLog, shifts: st.shifts, shift: st.shift, queue: st.queue, logo: st.logo }; },
   importData(d) {
     if (!d || d.app !== 'StrukKu') throw new Error('File bukan cadangan StrukKu');
     const base = blank();
@@ -380,8 +522,8 @@ export function startPersist() {
     if (!st.hydrated) return;
     clearTimeout(timer);
     timer = setTimeout(() => {
-      const { settings, categories, products, sales, finance, customers, held, counter, cart, v } = useStore.getState();
-      storage.set('db', { v, settings, categories, products, sales, finance, customers, held, counter, cart });
+      const { settings, categories, products, sales, finance, customers, held, counter, cart, stockLog, shifts, shift, queue, v } = useStore.getState();
+      storage.set('db', { v, settings, categories, products, sales, finance, customers, held, counter, cart, stockLog, shifts, shift, queue });
     }, 250);
   });
 }

@@ -306,3 +306,70 @@ export function DecimalPad({ value, onChange, allowDec = true }) {
     </div>
   );
 }
+
+// ---------- multi-select ----------
+export function useSelection() {
+  const [on, setOn] = useState(false);
+  const [sel, setSel] = useState(() => new Set());
+  const api = {
+    on, sel, count: sel.size,
+    has: id => sel.has(id),
+    start(id) { setOn(true); if (id != null) setSel(new Set([id])); fx('toggle'); },
+    toggle(id) { fx('tap'); setSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }); },
+    setAll(ids) { fx('tap'); setSel(s => (ids.every(i => s.has(i)) ? new Set() : new Set(ids))); },
+    clear() { setOn(false); setSel(new Set()); },
+    ids: () => [...sel]
+  };
+  useBack(() => api.clear(), on);
+  return api;
+}
+
+// Long-press (tekan lama) without blocking normal taps/scrolling
+export function useLongPress(onLong, ms = 450) {
+  const t = useRef(null); const fired = useRef(false); const start = useRef(null);
+  const clear = () => { clearTimeout(t.current); t.current = null; };
+  return {
+    onPointerDown: e => { fired.current = false; start.current = [e.clientX, e.clientY]; clear(); t.current = setTimeout(() => { fired.current = true; onLong(); }, ms); },
+    onPointerMove: e => { if (start.current && Math.hypot(e.clientX - start.current[0], e.clientY - start.current[1]) > 10) clear(); },
+    onPointerUp: clear, onPointerCancel: clear, onPointerLeave: clear,
+    onContextMenu: e => e.preventDefault(),
+    wasLong: () => fired.current
+  };
+}
+
+export const CheckCircle = ({ on }) => (
+  <div style={{ width: 28, height: 28, borderRadius: 14, flex: 'none', display: 'grid', placeItems: 'center', background: on ? 'var(--primary)' : 'transparent', border: on ? 'none' : '2.5px solid var(--line)', transition: 'all .15s' }}>
+    {on && <Check size={18} color="var(--on-primary)" strokeWidth={3} />}
+  </div>
+);
+
+// Header shown while selecting: "3 dipilih · Pilih semua · Batal"
+export function SelectHeader({ selection, allIds, label = 'dipilih' }) {
+  const all = allIds.length > 0 && allIds.every(i => selection.has(i));
+  return (
+    <div className="header" style={{ background: 'var(--primary-soft)' }}>
+      <button className="icon-btn" onClick={() => selection.clear()} aria-label="Batal"><X size={24} /></button>
+      <div className="grow"><h1>{selection.count} {label}</h1><div className="sub">Ketuk untuk memilih / batal memilih</div></div>
+      <button className="btn sm soft" style={{ background: 'var(--surface)' }} onClick={() => selection.setAll(allIds)}>{all ? 'Batal semua' : 'Pilih semua'}</button>
+    </div>
+  );
+}
+
+// Bottom bar of bulk actions
+export function ActionBar({ children, show }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div initial={{ y: 120 }} animate={{ y: 0 }} exit={{ y: 120 }} transition={{ type: 'spring', damping: 28, stiffness: 340 }}
+          className="action-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 25, padding: '10px 12px calc(var(--safe-bottom) + 12px)', background: 'var(--surface)', borderTop: '1px solid var(--line)', boxShadow: '0 -8px 24px rgba(0,0,0,.08)' }}>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'space-around', maxWidth: 760, margin: '0 auto' }}>{children}</div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+export const ActionBtn = ({ icon: Icon, label, onClick, danger, disabled }) => (
+  <button disabled={disabled} onClick={() => { fx('tap'); onClick(); }} className="col" style={{ flex: 1, alignItems: 'center', gap: 4, padding: '8px 2px', borderRadius: 14, color: danger ? 'var(--expense)' : 'var(--text)', opacity: disabled ? 0.4 : 1, fontSize: '.74rem', fontWeight: 800 }}>
+    <Icon size={23} />{label}
+  </button>
+);

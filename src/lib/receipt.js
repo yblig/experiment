@@ -80,6 +80,7 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   storeHead(b, s, hasLogo);
   b.hr('=');
   if (copy) b.text(copy, { align: 'c', bold: true });
+  if (sale.queue) { b.text('NO. ANTRIAN', { align: 'c' }); b.text(String(sale.queue).padStart(3, '0'), { align: 'c', big: true, bold: true }); b.hr(); }
   b.row('No', sale.no);
   b.row('Tanggal', fmtReceiptDate(sale.date));
   if (s.showCashier && (sale.cashier || s.cashier)) b.row('Kasir', sale.cashier || s.cashier);
@@ -89,7 +90,7 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   b.hr();
   for (const it of sale.items) {
     b.text(it.name, { bold: false });
-    b.row(`  ${fmtQty(it.qty, it.unit)} x ${rp(it.price, false)}`, rp(Math.round(it.price * it.qty), false));
+    b.row(`  ${fmtQty(it.qty, it.unit)} x ${rp(it.price, false)}${it.grosir ? ' (grosir)' : ''}`, rp(Math.round(it.price * it.qty), false));
     if (it.disc) b.row('  Diskon', '-' + rp(it.disc, false));
   }
   b.hr();
@@ -97,6 +98,8 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   if (sale.discount) b.row('Diskon' + (sale.discLabel ? ` ${sale.discLabel}` : ''), '-' + rp(sale.discount, false));
   if (sale.service) b.row(`Layanan ${sale.servicePct}%`, rp(sale.service, false));
   if (sale.tax) b.row(`Pajak ${sale.taxPct}%`, rp(sale.tax, false));
+  if (sale.extra) b.row(sale.extraLabel || 'Biaya tambahan', rp(sale.extra, false));
+  if (sale.roundAdj) b.row('Pembulatan', (sale.roundAdj > 0 ? '' : '-') + rp(Math.abs(sale.roundAdj), false));
   b.row('TOTAL', rp(sale.total), { bold: true, tall: true });
   if (sale.method === 'debt') {
     const paid = (sale.payments || []).reduce((a, p) => a + p.amount, 0);
@@ -107,6 +110,7 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
     b.row(`Bayar (${methodName(sale.method)})`, rp(sale.paid, false));
     if (sale.method === 'cash') b.row('Kembali', rp(sale.change, false));
   }
+  if (s.showSaved !== false && sale.saved > 0) { b.blank(); b.text(`Anda hemat ${rp(sale.saved)}`, { align: 'c', bold: true }); }
   if (sale.status === 'void') { b.blank(); b.text('*** TRANSAKSI DIBATALKAN ***', { align: 'c', bold: true }); }
   if (sale.note) { b.hr(); b.text('Catatan: ' + sale.note); }
   if (sale.due && s.bizType === 'laundry') { b.hr(); b.text('Bawa nota ini saat mengambil cucian.', { align: 'c' }); }
@@ -114,6 +118,70 @@ export function buildSaleReceipt(sale, s, { hasLogo = false, copy = '' } = {}) {
   if (s.footer) b.text(s.footer, { align: 'c' });
   if (s.showQr && s.qrText) { b.blank(); b.qr(s.qrText); if (s.qrLabel) b.text(s.qrLabel, { align: 'c' }); }
   return b.blocks;
+}
+
+// Small slip to stick on a laundry bag / order: one per bag ("1/3")
+export function buildLabelReceipt(sale, s, { index = 1, total = 1 } = {}) {
+  const w = charsFor(s.paper);
+  const b = B(w);
+  if (s.storeName) b.text(s.storeName, { align: 'c', bold: true });
+  b.hr();
+  b.text(sale.customer || 'Tanpa nama', { align: 'c', big: true, bold: true });
+  if (sale.phone) b.text(sale.phone, { align: 'c' });
+  b.row(sale.no, total > 1 ? `Kantong ${index}/${total}` : '', { bold: true });
+  b.row('Masuk', fmtReceiptDate(sale.date));
+  if (sale.due) b.row('Selesai', dueFmt(sale.due), { bold: true });
+  b.hr();
+  sale.items.forEach(it => b.row(it.name, fmtQty(it.qty, it.unit)));
+  if (sale.note) { b.hr(); b.text('Catatan: ' + sale.note, { bold: true }); }
+  b.hr();
+  b.text(sale.status === 'debt' ? `BELUM LUNAS - sisa ${rp(sale.total - (sale.payments || []).reduce((a, p) => a + p.amount, 0))}` : 'LUNAS', { align: 'c', bold: true });
+  return b.blocks;
+}
+
+export function buildShiftReceipt(sh, s) {
+  const w = charsFor(s.paper);
+  const b = B(w); const x = sh.summary || {};
+  if (s.storeName) b.text(s.storeName, { align: 'c', big: true, bold: true });
+  b.text('LAPORAN TUTUP KASIR', { align: 'c', bold: true });
+  b.hr('=');
+  if (sh.cashier) b.row('Kasir', sh.cashier);
+  b.row('Buka', fmtReceiptDate(sh.openAt));
+  b.row('Tutup', fmtReceiptDate(sh.closeAt || Date.now()));
+  b.hr();
+  b.row('Jumlah transaksi', String(x.count || 0));
+  b.row('Total penjualan', rp(x.omzet || 0, false));
+  b.row('  Non-tunai (QRIS/TF)', rp(x.nonCash || 0, false));
+  b.row('  Kasbon baru', rp(x.debtNew || 0, false));
+  b.hr();
+  b.text('UANG DI LACI', { bold: true });
+  b.row('Modal awal', rp(sh.openCash || 0, false));
+  b.row('+ Penjualan tunai', rp(x.cashSales || 0, false));
+  if (x.cashDebtPaid) b.row('+ Bayar kasbon tunai', rp(x.cashDebtPaid, false));
+  if (x.otherIn) b.row('+ Pemasukan lain', rp(x.otherIn, false));
+  if (x.out) b.row('- Pengeluaran', rp(x.out, false));
+  b.row('Seharusnya', rp(sh.expected ?? x.expected ?? 0), { bold: true });
+  if (sh.countedCash != null) {
+    b.row('Dihitung', rp(sh.countedCash), { bold: true });
+    b.row('Selisih', (sh.diff > 0 ? '+' : '') + rp(sh.diff || 0), { bold: true, tall: true });
+  }
+  if (sh.note) { b.hr(); b.text('Catatan: ' + sh.note); }
+  b.hr('=');
+  b.blank(); b.text('(........................)', { align: 'c' });
+  return b.blocks;
+}
+
+// Plain-text version of any receipt (for WhatsApp, monospace)
+export function blocksToText(blocks, paper = 58) {
+  const w = Math.min(charsFor(paper), 32); // WhatsApp on phones fits ~32 mono chars
+  const out = [];
+  for (const b of blocks) {
+    if (b.t !== 'line') continue;
+    let t = b.text.length > w && /^[-=]+$/.test(b.text) ? b.text.slice(0, w) : b.text;
+    if (b.align === 'c') t = ' '.repeat(Math.max(0, Math.floor((w - t.length) / 2))) + t;
+    out.push(t.replace(/\s+$/, ''));
+  }
+  return '```\n' + out.join('\n').replace(/\n{3,}/g, '\n\n') + '\n```';
 }
 
 export function buildReportReceipt(rep, s, { hasLogo = false } = {}) {

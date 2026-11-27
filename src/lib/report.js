@@ -31,7 +31,18 @@ export function computeReport(st, from, to, label = '') {
   const ic = {};
   fin.filter(f => f.type === 'in').forEach(f => { ic[f.cat] = (ic[f.cat] || 0) + f.amount; });
   const inCats = Object.entries(ic).map(([id, amount]) => ({ ...catOf('in', id), amount })).sort((a, b) => b.amount - a.amount);
-  return { label, from, to, count: valid.length, voids: sales.length - valid.length, omzet, cost, gross, qty, otherIn, out, net, methods, debtOpen, top, outCats, inCats, avg: valid.length ? Math.round(omzet / valid.length) : 0 };
+  const hours = Array.from({ length: 24 }, () => ({ omzet: 0, count: 0 }));
+  valid.forEach(x => { const h = new Date(x.date).getHours(); hours[h].omzet += x.total; hours[h].count++; });
+  const catMap = new Map(st.products.map(p => [p.id, p.catId]));
+  const bc = {};
+  valid.forEach(x => x.items.forEach(i => { const cid = (i.pid && catMap.get(i.pid)) || '_'; bc[cid] = (bc[cid] || 0) + (i.total ?? Math.round(i.price * i.qty)); }));
+  const byCat = Object.entries(bc).map(([id, amount]) => { const c = st.categories.find(k => k.id === id); return { id, name: c?.name || 'Tanpa kategori', color: c?.color || '#5B6770', amount }; }).sort((a, b) => b.amount - a.amount);
+  const kc = {};
+  valid.forEach(x => { const k = x.cashier || 'Tanpa nama'; kc[k] = kc[k] || { name: k, amount: 0, count: 0 }; kc[k].amount += x.total; kc[k].count++; });
+  const byCashier = Object.values(kc).sort((a, b) => b.amount - a.amount);
+  const extra = valid.reduce((a, x) => a + (x.extra || 0), 0);
+  const saved = valid.reduce((a, x) => a + (x.saved || 0), 0);
+  return { hours, byCat, byCashier, extra, saved, label, from, to, count: valid.length, voids: sales.length - valid.length, omzet, cost, gross, qty, otherIn, out, net, methods, debtOpen, top, outCats, inCats, avg: valid.length ? Math.round(omzet / valid.length) : 0 };
 }
 
 export function dailySeries(st, days = 7, end = Date.now()) {

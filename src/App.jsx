@@ -14,7 +14,7 @@ import Payment from './screens/Payment.jsx';
 import { History, SaleDetail, SaleDone } from './screens/Sales.jsx';
 import Finance from './screens/Finance.jsx';
 import Menu from './screens/Menu.jsx';
-import { Products, Categories } from './screens/Products.jsx';
+import { Products, Categories, Opname, StockLog } from './screens/Products.jsx';
 import { Customers, CustomerDetail, Debts } from './screens/Customers.jsx';
 import Reports from './screens/Reports.jsx';
 import ReceiptSettings from './screens/ReceiptSettings.jsx';
@@ -23,10 +23,11 @@ import { Security, Appearance, Backup, About, CashierSettings } from './screens/
 import Onboarding from './screens/Onboarding.jsx';
 import Orders from './screens/Orders.jsx';
 import WebPrintHost from './components/WebPrint.jsx';
+import Shift from './screens/Shift.jsx';
 
 const PAGES = {
-  payment: Payment, done: SaleDone, sale: SaleDetail, products: Products, categories: Categories,
-  orders: Orders, customers: Customers, customer: CustomerDetail, debts: Debts, reports: Reports, receiptSettings: ReceiptSettings,
+  payment: Payment, done: SaleDone, sale: SaleDetail, products: Products, categories: Categories, opname: Opname, stockLog: StockLog,
+  orders: Orders, shift: Shift, customers: Customers, customer: CustomerDetail, debts: Debts, reports: Reports, receiptSettings: ReceiptSettings,
   printer: Printer, security: Security, appearance: Appearance, backup: Backup, about: About, cashierSettings: CashierSettings
 };
 const TABS = { home: Home, history: History, cashier: Cashier, finance: Finance, menu: Menu };

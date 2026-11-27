@@ -1,5 +1,5 @@
 // StrukKu offline cache: pages network-first, static assets cache-first.
-const CACHE = 'strukku-v1';
+const CACHE = 'strukku-v1.2';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.webmanifest']).catch(() => {}))); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

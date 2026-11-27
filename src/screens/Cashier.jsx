@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, PenLine, PauseCircle, Minus, Plus, Trash2, ShoppingCart, ChevronRight, Star, User, StickyNote, Percent, Play, PackagePlus, Sparkles, X, Phone, CalendarClock, Scale } from 'lucide-react';
+import { Truck, Search, PenLine, PauseCircle, Minus, Plus, Trash2, ShoppingCart, ChevronRight, Star, User, StickyNote, Percent, Play, PackagePlus, Sparkles, X, Phone, CalendarClock, Scale } from 'lucide-react';
 import { useStore, calcCart, isDec, fmtQty, bizOf } from '../store.js';
 import { useUI, nav, toast, confirmDialog } from '../ui.js';
 import { rp, fmtTime, relDay, startOfDay, toDateInput, fromDateInput, HARI } from '../lib/format.js';
@@ -101,6 +101,7 @@ function CartContent({ onEdit, onWeigh }) {
   const { setQty, setCart } = useStore.getState();
   const c = calcCart(cart, s);
   const [showDisc, setShowDisc] = useState(false);
+  const [showExtra, setShowExtra] = useState(false);
   const [customDue, setCustomDue] = useState(false);
   const sugg = cart.customer && !cart.customerId ? customers.filter(x => x.name.toLowerCase().includes(cart.customer.toLowerCase()) && x.name !== cart.customer).slice(0, 4) : [];
   useEffect(() => { if (s.trackOrders && cart.items.length && cart.due === null) setCart({ due: dueAt(s.dueDays ?? 2) }); }, [cart.items.length, s.trackOrders]);
@@ -113,7 +114,7 @@ function CartContent({ onEdit, onWeigh }) {
           <div key={l.key} className="li" style={{ alignItems: 'center' }}>
             <button className="grow" style={{ textAlign: 'left', minWidth: 0 }} onClick={() => { fx('tap'); onEdit(l); }}>
               <div className="t ellipsis">{l.emoji ? l.emoji + ' ' : ''}{l.name}</div>
-              <div className="s num">{rp(l.price)}{l.unit && l.unit !== 'pcs' ? '/' + l.unit : ''} {l.disc ? <span className="red">· diskon {rp(l.disc)}</span> : null}</div>
+              <div className="s num">{l.grosir ? <><s>{rp(l.basePrice)}</s> <b className="prim">{rp(l.price)} grosir</b></> : rp(l.price)}{l.unit && l.unit !== 'pcs' ? '/' + l.unit : ''} {l.disc ? <span className="red">· diskon {rp(l.disc)}</span> : null}</div>
               <div className="bold num mt8">{rp(l.total)}</div>
             </button>
             {isDec(l.unit)
@@ -147,6 +148,11 @@ function CartContent({ onEdit, onWeigh }) {
         <Field label="Catatan (opsional)">
           <div className="input-wrap"><span className="prefix"><StickyNote size={18} /></span><input className="input" value={cart.note} onChange={e => setCart({ note: e.target.value })} placeholder={laundry ? 'Contoh: jangan dicampur baju putih' : 'Contoh: pedas, dibungkus'} /></div>
         </Field>
+        <div className="row gap8" style={{ marginBottom: 12 }}>
+          {!showExtra && !cart.extra
+            ? <button className="btn outline block sm" onClick={() => setShowExtra(true)}><Truck size={18} /> {s.extraLabel || 'Biaya tambahan'}</button>
+            : <div className="grow"><Field label={`${s.extraLabel || 'Biaya tambahan'} (Rp)`}><MoneyInput value={cart.extra} onChange={v => setCart({ extra: v })} /></Field></div>}
+        </div>
         {!showDisc && !cart.discVal ? (
           <button className="btn soft block sm" onClick={() => setShowDisc(true)}><Percent size={18} /> Tambah diskon</button>
         ) : (
@@ -166,8 +172,11 @@ function CartContent({ onEdit, onWeigh }) {
         {c.discount > 0 && <div className="kv"><span>Diskon</span><span className="num red">-{rp(c.discount)}</span></div>}
         {c.service > 0 && <div className="kv"><span>Layanan {s.servicePct}%</span><span className="num">{rp(c.service)}</span></div>}
         {c.tax > 0 && <div className="kv"><span>Pajak {s.taxPct}%</span><span className="num">{rp(c.tax)}</span></div>}
+        {c.extra > 0 && <div className="kv"><span>{s.extraLabel || 'Biaya tambahan'}</span><span className="num">{rp(c.extra)}</span></div>}
+        {c.roundAdj !== 0 && <div className="kv"><span>Pembulatan</span><span className="num">{c.roundAdj > 0 ? '+' : ''}{rp(c.roundAdj)}</span></div>}
         <div className="dash" />
         <div className="kv" style={{ fontSize: '1.2rem' }}><span style={{ color: 'var(--text)', fontWeight: 800 }}>Total</span><span className="num bold">{rp(c.total)}</span></div>
+        {c.saved > 0 && <div className="small bold green" style={{ textAlign: 'right' }}>Pelanggan hemat {rp(c.saved)}</div>}
       </div>
     </>
   );
@@ -235,14 +244,14 @@ function CartPanel({ onEdit, onWeigh }) {
 function LineSheet({ line, onClose }) {
   const [f, setF] = useState(null);
   const dec = isDec(line?.unit);
-  useEffect(() => { if (line) setF({ qty: line.qty, qtyS: toStr(line.qty), price: line.price, disc: line.disc || 0, name: line.name }); }, [line]);
+  useEffect(() => { if (line) setF({ qty: line.qty, qtyS: toStr(line.qty), price: line.basePrice ?? line.price, disc: line.disc || 0, name: line.name }); }, [line]);
   const { updateLine, removeLine } = useStore.getState();
   const qty = f ? (dec ? toNum(f.qtyS) : f.qty) : 0;
   return (
     <Sheet open={!!line} onClose={onClose} title="Ubah barang"
       footer={<div className="row gap12">
         <button className="btn outline" style={{ color: 'var(--expense)' }} onClick={() => { removeLine(line.key); fx('remove'); onClose(); }}><Trash2 size={20} /> Hapus</button>
-        <button className="btn primary grow" disabled={!qty} onClick={() => { updateLine(line.key, { qty, price: f.price, disc: Math.min(f.disc, Math.round(f.price * qty)), name: f.name || line.name }); fx('success'); onClose(); }}>Simpan</button>
+        <button className="btn primary grow" disabled={!qty} onClick={() => { updateLine(line.key, { qty, price: f.price, priceEdited: line.priceEdited || f.price !== (line.basePrice ?? line.price), disc: Math.min(f.disc, Math.round(f.price * qty)), name: f.name || line.name }); fx('success'); onClose(); }}>Simpan</button>
       </div>}>
       {f && <>
         <Field label="Nama barang"><input className="input" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} /></Field>
@@ -321,9 +330,9 @@ export default function Cashier() {
   const counts = useMemo(() => { const m = {}; cart.items.forEach(i => { if (i.pid && !i.custom) m[i.pid] = (m[i.pid] || 0) + i.qty; }); return m; }, [cart.items]);
   const c = calcCart(cart, s);
   const list = useMemo(() => {
-    let l = products;
+    let l = products.filter(p => !p.hidden);
     if (cat === 'fav') l = l.filter(p => p.fav); else if (cat !== 'all') l = l.filter(p => p.catId === cat);
-    if (q.trim()) { const t = q.trim().toLowerCase(); l = l.filter(p => p.name.toLowerCase().includes(t)); }
+    if (q.trim()) { const t = q.trim().toLowerCase(); l = l.filter(p => p.name.toLowerCase().includes(t) || (p.sku || '').toLowerCase() === t || (p.sku || '').toLowerCase().includes(t)); }
     return [...l].sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || (b.sold || 0) - (a.sold || 0) || a.name.localeCompare(b.name));
   }, [products, cat, q]);
   const colorOf = p => categories.find(x => x.id === p.catId)?.color || p.color || '#0E7C66';

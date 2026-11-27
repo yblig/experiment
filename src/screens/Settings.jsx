@@ -129,6 +129,12 @@ export function Appearance() {
   );
 }
 
+function CashierAdd() {
+  const [n, setN] = useState('');
+  const add = () => { const v = n.trim(); if (!v) return; const s = useStore.getState().settings; useStore.getState().setSettings({ cashiers: [...new Set([...(s.cashiers || []), v])] }); setN(''); fx('success'); };
+  return <div className="row gap8 mt12"><input className="input" value={n} onChange={e => setN(e.target.value)} placeholder="Nama kasir baru" /><button className="btn primary sm" style={{ height: 54 }} disabled={!n.trim()} onClick={add}>Tambah</button></div>;
+}
+
 export function CashierSettings() {
   const s = useStore(st => st.settings); const set = useStore(st => st.setSettings);
   const qc = s.quickCash || [10000, 20000, 50000, 100000];
@@ -156,6 +162,25 @@ export function CashierSettings() {
         </div>
         <div className="tiny muted">Isi 0 jika tidak memakai pajak atau biaya layanan.</div>
       </div>
+      <div className="section-title">Pembayaran & total</div>
+      <div className="card">
+        <Field label="Pembulatan total" hint="Contoh dibulatkan ke 500: Rp12.300 → Rp12.500"><Seg value={s.rounding || 0} onChange={v => set({ rounding: v })} options={[{ value: 0, label: 'Tidak' }, { value: 100, label: '100' }, { value: 500, label: '500' }, { value: 1000, label: '1.000' }]} /></Field>
+        <Field label="Nama biaya tambahan" hint="Muncul di kasir sebagai tombol, misal ongkos kirim / antar-jemput"><input className="input" value={s.extraLabel || ''} onChange={e => set({ extraLabel: e.target.value })} placeholder="Ongkos kirim" /></Field>
+        <Field label="Target penjualan harian" hint="Progresnya tampil di Beranda. Kosongkan jika tidak perlu."><MoneyInput value={s.dailyTarget || 0} onChange={v => set({ dailyTarget: v })} /></Field>
+      </div>
+      <div className="section-title">Daftar kasir</div>
+      <div className="card">
+        <div className="small muted" style={{ marginBottom: 10 }}>Untuk usaha dengan beberapa penjaga. Ganti kasir dengan mengetuk sapaan di Beranda.</div>
+        <div className="row gap8" style={{ flexWrap: 'wrap' }}>
+          {[...new Set([s.cashier, ...(s.cashiers || [])].filter(Boolean))].map(n => (
+            <span key={n} className="chip" style={s.cashier === n ? { background: 'var(--primary)', color: 'var(--on-primary)', boxShadow: 'none' } : null}>
+              <button onClick={() => set({ cashier: n })}>{n}</button>
+              <button onClick={() => set({ cashiers: (s.cashiers || []).filter(x => x !== n), ...(s.cashier === n ? { cashier: '' } : {}) })} aria-label="Hapus" style={{ marginLeft: 4, opacity: 0.7 }}>✕</button>
+            </span>
+          ))}
+        </div>
+        <CashierAdd />
+      </div>
       <div className="section-title">Tombol uang cepat (tunai)</div>
       <div className="card">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -179,6 +204,7 @@ export function Backup() {
     try {
       const data = JSON.stringify(st.exportData());
       await shareFile(`strukku-cadangan-${toDateInput(Date.now())}.json`, data, { mime: 'application/json', title: 'Simpan cadangan StrukKu', text: 'File cadangan StrukKu' });
+      useStore.getState().setSettings({ lastBackup: Date.now() });
       fx('success');
     } catch (e) { if (!/cancel/i.test(e?.message || '')) toast('Gagal: ' + e.message, { type: 'error' }); }
   };
@@ -229,7 +255,12 @@ const GUIDE = [
   ['Kasbon (bayar nanti)', 'Saat bayar pilih Kasbon dan isi nama pelanggan. Lunasi nanti dari Menu → Kasbon.'],
   ['Menahan pesanan', 'Di halaman pesanan tekan tombol ⏸ untuk menyimpan sementara, lalu layani pembeli lain. Lanjutkan dari ikon ⏸ di Kasir.'],
   ['Mengunci dengan PIN', 'Menu → Keamanan & PIN → Buat PIN. Atur bagian mana saja yang dikunci.'],
-  ['Pindah HP', 'Menu → Cadangkan & Pulihkan → Buat file cadangan. Di HP baru pilih Pulihkan dari file.']
+  ['Pindah HP', 'Menu → Cadangkan & Pulihkan → Buat file cadangan. Di HP baru pilih Pulihkan dari file.'],
+  ['Pilih banyak produk sekaligus', 'Menu → Produk & Stok → tekan lama salah satu produk (atau tombol ☑ di atas). Centang produk lain, lalu pilih Hapus, Kategori, Harga, Stok, atau Lainnya di bawah. Bisa juga di Riwayat, Keuangan, dan Pelanggan.'],
+  ['Stok masuk & stok opname', 'Buka produk → Stok masuk untuk menambah stok dari belanja (otomatis jadi pengeluaran). Produk & Stok → ⋮ → Stok opname untuk mencocokkan stok dengan hitungan fisik.'],
+  ['Buka & tutup kasir', 'Beranda → Kasir belum dibuka → isi modal awal. Sore hari hitung uang di laci → Tutup Kasir. Selisihnya langsung terlihat.'],
+  ['Harga grosir', 'Buka produk → aktifkan Harga grosir → isi minimal jumlah & harganya. Di kasir harga otomatis berubah saat jumlahnya cukup.'],
+  ['Ulangi pesanan & kirim struk teks', 'Buka transaksi di Riwayat → Ulangi pesanan (isi kasir otomatis) atau Kirim teks (struk dikirim ke WhatsApp sebagai tulisan).']
 ];
 
 export function About() {

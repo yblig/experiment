@@ -1,4 +1,4 @@
-import { ClipboardList, Briefcase, Receipt, Printer, Package, Tags, Users, HandCoins, BarChart3, ShieldCheck, Palette, DatabaseBackup, Info, ChevronRight, Calculator, Store } from 'lucide-react';
+import { DoorOpen, ClipboardList, Briefcase, Receipt, Printer, Package, Tags, Users, HandCoins, BarChart3, ShieldCheck, Palette, DatabaseBackup, Info, ChevronRight, Calculator, Store } from 'lucide-react';
 import { useStore, bizOf } from '../store.js';
 import { useUI, nav } from '../ui.js';
 import { usePrinter, isNative } from '../lib/printer.js';
@@ -44,6 +44,7 @@ export default function Menu() {
           <Item icon={Receipt} color="var(--primary)" bg="var(--primary-soft)" title="Tampilan Struk" sub="Nama toko, logo, header, footer, QR" onClick={set('receiptSettings')} />
           <Item icon={Printer} color="var(--info)" bg="var(--info-soft)" title={isNative ? "Printer Bluetooth" : "Cara Mencetak"} sub={!isNative ? 'AirPrint atau bagikan gambar struk' : pr.state === 'connected' ? `Tersambung: ${pr.name}` : s.printerName ? `Terakhir: ${s.printerName}` : 'Belum diatur'}
             right={<span style={{ width: 10, height: 10, borderRadius: 5, background: pr.state === 'connected' ? 'var(--income)' : 'var(--line)' }} />} onClick={() => nav.push('printer')} />
+          <Item icon={DoorOpen} color="var(--income)" bg="var(--income-soft)" title="Buka / Tutup Kasir" sub={st.shift ? 'Kasir sedang buka · hitung uang laci' : 'Modal awal, uang laci, selisih'} onClick={() => nav.push('shift')} />
           <Item icon={Briefcase} color="#8E5BD8" bg="color-mix(in srgb, #8E5BD8 14%, var(--surface))" title="Jenis Usaha" sub={`${bizOf(s.bizType).emoji} ${bizOf(s.bizType).name}${s.trackOrders ? ' · lacak pesanan' : ''}`} onClick={set('cashierSettings')} />
           <Item icon={Calculator} color="#A86A00" bg="var(--accent-soft)" title="Kasir, Pajak & Pembayaran" sub={`Pajak ${s.taxPct}% · Layanan ${s.servicePct}% · ${s.cashier ? 'Kasir ' + s.cashier : 'Nama kasir'}`} onClick={set('cashierSettings')} />
         </div>
